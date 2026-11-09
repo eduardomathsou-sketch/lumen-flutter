@@ -201,7 +201,13 @@ void main() {
       'Minha frase segura 123!',
     );
     tester.testTextInput.hide();
-    await tester.ensureVisible(find.text('ENTRAR'));
+    // A lista é montada sob demanda: com o link "Esqueci minha senha" o botão
+    // pode nascer fora da área visível, então rolamos até ele.
+    await tester.scrollUntilVisible(
+      find.text('ENTRAR'),
+      150,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('ENTRAR'));
     await tester.pumpAndSettle();
     expect(find.text('E-mail ou senha incorretos.'), findsOneWidget);
