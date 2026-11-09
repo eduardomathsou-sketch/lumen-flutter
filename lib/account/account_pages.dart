@@ -4,6 +4,9 @@ import '../checkout/checkout_pages.dart';
 import '../admin/admin_api.dart';
 import '../admin/admin_pages.dart';
 import 'account_controller.dart';
+import 'legal_pages.dart';
+import 'password_pages.dart';
+import 'security_pages.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({
@@ -15,6 +18,13 @@ class ProfilePage extends StatelessWidget {
   final AccountController account;
   final VoidCallback onOrders;
   final VoidCallback? onCatalogChanged;
+  Future<void> _legal(BuildContext context, String slug) =>
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => LegalPage(account: account, slug: slug),
+        ),
+      );
+
   Future<void> _auth(BuildContext context, bool register) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -99,6 +109,71 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
         if (account.user != null) ...[
+          if (!account.termsCurrent) ...[
+            const SizedBox(height: 12),
+            Card(
+              key: const ValueKey('terms-renewal'),
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Atualizamos os Termos de Uso e a Política de Privacidade. Leia e aceite para continuar.',
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton(
+                          onPressed: () => _legal(context, 'terms'),
+                          child: const Text('Ler os Termos'),
+                        ),
+                        TextButton(
+                          onPressed: () => _legal(context, 'privacy'),
+                          child: const Text('Ler a Política'),
+                        ),
+                        FilledButton(
+                          onPressed: () async {
+                            try {
+                              await account.acceptTerms();
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(errorText(e))),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('LI E ACEITO'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+              leading: const Icon(Icons.lock_outline),
+              title: const Text('Segurança'),
+              subtitle: const Text('Senha e aparelhos conectados'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => SecurityPage(account: account),
+                ),
+              ),
+            ),
+          ),
           if (account.isAdmin) ...[
             const SizedBox(height: 12),
             Card(
@@ -168,6 +243,18 @@ class ProfilePage extends StatelessWidget {
             },
           ),
         ],
+        const SizedBox(height: 32),
+        const Divider(),
+        Wrap(
+          alignment: WrapAlignment.center,
+          children: [
+            for (final entry in legalTitles.entries)
+              TextButton(
+                onPressed: () => _legal(context, entry.key),
+                child: Text(entry.value),
+              ),
+          ],
+        ),
       ],
     ),
   );
@@ -188,6 +275,7 @@ class _AuthPageState extends State<AuthPage> {
   final _confirm = TextEditingController();
   late bool _register;
   bool _busy = false, _obscure = true;
+  bool _acceptTerms = false, _marketing = false, _termsError = false;
   String? _error;
   @override
   void initState() {
@@ -203,14 +291,49 @@ class _AuthPageState extends State<AuthPage> {
     super.dispose();
   }
 
+  Future<void> _openLegal(String slug) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => LegalPage(account: widget.account, slug: slug),
+    ),
+  );
+
+  Future<void> _forgotPassword() async {
+    final changed = await Navigator.of(context).push(
+      MaterialPageRoute<bool>(
+        builder: (_) => PasswordResetPage(
+          account: widget.account,
+          initialEmail: _email.text.trim(),
+        ),
+      ),
+    );
+    if (changed == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Senha alterada. Entre com a nova senha.'),
+        ),
+      );
+    }
+  }
+
   Future<void> _submit() async {
-    if (_busy || !_form.currentState!.validate()) return;
+    if (_busy) return;
+    final valid = _form.currentState!.validate();
+    // O aceite é explícito: sem marcar a caixa, o cadastro não é enviado.
+    final missingTerms = _register && !_acceptTerms;
+    if (missingTerms != _termsError) setState(() => _termsError = missingTerms);
+    if (!valid || missingTerms) return;
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await widget.account.signIn(_email.text, _password.text, _register);
+      await widget.account.signIn(
+        _email.text,
+        _password.text,
+        _register,
+        acceptTerms: _acceptTerms,
+        marketing: _marketing,
+      );
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) setState(() => _error = errorText(e));
@@ -316,7 +439,67 @@ class _AuthPageState extends State<AuthPage> {
                           ? 'As senhas não conferem.'
                           : null,
                     ),
-                  ],
+                    const SizedBox(height: 12),
+                    CheckboxListTile(
+                      key: const ValueKey('auth-terms'),
+                      value: _acceptTerms,
+                      onChanged: _busy
+                          ? null
+                          : (v) => setState(() {
+                              _acceptTerms = v ?? false;
+                              if (_acceptTerms) _termsError = false;
+                            }),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Li e aceito os Termos de Uso e a Política de Privacidade.',
+                      ),
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton(
+                          onPressed: () => _openLegal('terms'),
+                          child: const Text('Ler os Termos'),
+                        ),
+                        TextButton(
+                          onPressed: () => _openLegal('privacy'),
+                          child: const Text('Ler a Política'),
+                        ),
+                      ],
+                    ),
+                    if (_termsError)
+                      Text(
+                        'Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.',
+                        key: const ValueKey('auth-terms-error'),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    CheckboxListTile(
+                      key: const ValueKey('auth-marketing'),
+                      value: _marketing,
+                      onChanged: _busy
+                          ? null
+                          : (v) => setState(() => _marketing = v ?? false),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Quero receber novidades e lembretes da Lumen por e-mail.',
+                      ),
+                      subtitle: const Text(
+                        'Opcional. Você pode desligar quando quiser.',
+                      ),
+                    ),
+                  ] else
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        key: const ValueKey('auth-forgot'),
+                        onPressed: _busy ? null : _forgotPassword,
+                        child: const Text('Esqueci minha senha'),
+                      ),
+                    ),
                   const SizedBox(height: 20),
                   const Text(
                     'No primeiro acesso, a sacola atual fica vinculada à conta. Se você já tem uma sacola na conta, ela será retomada.',
@@ -349,6 +532,9 @@ class _AuthPageState extends State<AuthPage> {
                         : () => setState(() {
                             _register = !_register;
                             _error = null;
+                            _acceptTerms = false;
+                            _marketing = false;
+                            _termsError = false;
                             _form.currentState!.reset();
                           }),
                     child: Text(

@@ -30,6 +30,11 @@ AccountController accountForTest({
       }
       final body = jsonDecode(request.body) as Map;
       expect(body['password'], 'Minha frase segura 123!');
+      // Só o cadastro leva o aceite dos Termos; o login não envia nada além das credenciais.
+      expect(
+        body['accept_terms'],
+        request.url.path.endsWith('/register') ? true : null,
+      );
       return http.Response(
         jsonEncode({
           'access_token': 'account-token',
@@ -154,6 +159,10 @@ void main() {
         'Minha frase segura 123!',
       );
       tester.testTextInput.hide();
+      await tester.ensureVisible(find.byKey(const ValueKey('auth-terms')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('auth-terms')));
+      await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.text('CADASTRAR'),
         150,

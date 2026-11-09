@@ -106,6 +106,7 @@ void main() {
         'conta@example.com',
         'Minha frase segura 123!',
         true,
+        acceptTerms: true,
       );
       expect(user['email'], 'conta@example.com');
       final oldGuest = await client.get(

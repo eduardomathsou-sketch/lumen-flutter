@@ -261,14 +261,26 @@ class CommerceApi implements CommerceRepository {
     _token = null;
   }
 
-  Future<Json> signIn(String email, String password, bool register) async {
+  Future<Json> signIn(
+    String email,
+    String password,
+    bool register, {
+    bool acceptTerms = false,
+    bool marketing = false,
+  }) async {
     await _initialize();
     final result = await _send(
       'POST',
       register ? '/auth/register' : '/auth/login',
       authenticated: false,
       guestToken: _token,
-      body: {'email': email, 'password': password},
+      body: {
+        'email': email,
+        'password': password,
+        // O cadastro só passa com o aceite explícito; marketing é opcional.
+        if (register) 'accept_terms': acceptTerms,
+        if (register) 'marketing_opt_in': marketing,
+      },
     ) as Json;
     final token = result['access_token'] as String;
     await _accountStorage.write(token);
@@ -277,8 +289,12 @@ class CommerceApi implements CommerceRepository {
     return result['user'] as Json;
   }
 
-  Future<dynamic> accountRequest(String method, String path) =>
-      _send(method, path);
+  Future<dynamic> accountRequest(String method, String path, {Json? body}) =>
+      _send(method, path, body: body);
+
+  /// Rotas que não usam conta nem sacola: documentos legais e nova senha.
+  Future<dynamic> publicRequest(String method, String path, {Json? body}) =>
+      _send(method, path, body: body, authenticated: false);
 
   Future<dynamic> adminRequest(String method, String path, {Json? body}) =>
       _send(method, '/admin$path', body: body);

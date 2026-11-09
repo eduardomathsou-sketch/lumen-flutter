@@ -1,0 +1,52 @@
+name: App checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      # Mesma versão fixada em scripts/vercel-build.mjs (Dart 3.13.2).
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Análise estática
+        run: flutter analyze
+      - name: Testes de tela e de API simulada
+        run: flutter test
+      - name: Build web (o mesmo do deploy)
+        run: flutter build web --release --no-pub --dart-define=API_BASE_URL=https://example.com/api/v1
+
+  # O app de verdade conversando com a API de verdade (banco temporário, sem serviços externos).
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: lumen-flutter
+      - uses: actions/checkout@v4
+        with:
+          repository: eduardomathsou-sketch/Lumen-backend
+          # Trocar para main depois do merge do PR #1 do backend.
+          ref: evolucao-semestre
+          path: Lumen-backend
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r Lumen-backend/requirements.txt
+      - run: flutter pub get --enforce-lockfile
+        working-directory: lumen-flutter
+      - name: Contrato app x API (sandbox e Mercado Pago simulado)
+        run: python tests/run_flutter_contract.py
+        working-directory: Lumen-backend
