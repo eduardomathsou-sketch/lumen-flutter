@@ -10,6 +10,9 @@ dos dois repositórios:
 
 Atualizado em 10/11/2026.
 
+**Publicação própria (em andamento):** loja em <https://lumen-store-omega.vercel.app> e API em
+<https://lumen-api-wine.vercel.app>, com banco PostgreSQL na Neon (São Paulo).
+
 **Legenda:** ✅ pronto no app e na API · 🟡 parcial (a coluna "Situação" diz o que falta) · ⏳ a fazer
 
 ## Resumo
