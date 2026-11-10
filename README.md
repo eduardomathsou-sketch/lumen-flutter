@@ -14,6 +14,8 @@
 
 Aplicativo Flutter da Lumen, uma loja digital feminina com uma experiência editorial, leve e personalizada.
 
+**Cronograma da disciplina:** o andamento das 22 tarefas, com o que está pronto e onde está no código, fica em [CRONOGRAMA.md](CRONOGRAMA.md).
+
 **Publicar na Vercel:** siga [DEPLOY_VERCEL.md](DEPLOY_VERCEL.md). O repositório já
 contém build Flutter Web automático; configure `API_BASE_URL` com a API HTTPS
 conectada à Neon. Nenhuma credencial do banco ou Mercado Pago vai no frontend.
@@ -32,7 +34,9 @@ produtos, categorias, foto e estoque. Veja [ADMIN.md](ADMIN.md) para ativação.
 - Vitrine inicial com produto, preço e selo de exclusividade;
 - Favoritos, sacola com contador e navegação inferior;
 - Home conectada ao catálogo FastAPI, com carregamento, erro e nova tentativa, sem substituir falhas por produtos fictícios;
-- Busca/categorias, detalhe com quantidade, favoritos persistentes, cadastro/login e logout;
+- Busca/categorias, detalhe com quantidade, favoritos persistentes, cadastro (com aceite dos Termos), login e logout;
+- Esqueci minha senha, troca de senha e aparelhos conectados (ver e desconectar);
+- Termos de Uso, Política de Privacidade e Trocas e Devoluções lidos da API;
 - Sacola com alteração de quantidades e remoção, preço calculado pelo servidor e validação de endereço/CPF/CNPJ;
 - PIX, retomada após falhas, consulta automática, cancelamento e histórico da sessão;
 - Armazenamento seguro do token da sessão de compra.
