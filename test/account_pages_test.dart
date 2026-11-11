@@ -30,6 +30,11 @@ AccountController accountForTest({
       }
       final body = jsonDecode(request.body) as Map;
       expect(body['password'], 'Minha frase segura 123!');
+      // Só o cadastro leva o aceite dos Termos; o login não envia nada além das credenciais.
+      expect(
+        body['accept_terms'],
+        request.url.path.endsWith('/register') ? true : null,
+      );
       return http.Response(
         jsonEncode({
           'access_token': 'account-token',
@@ -154,6 +159,10 @@ void main() {
         'Minha frase segura 123!',
       );
       tester.testTextInput.hide();
+      await tester.ensureVisible(find.byKey(const ValueKey('auth-terms')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('auth-terms')));
+      await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.text('CADASTRAR'),
         150,
@@ -192,7 +201,13 @@ void main() {
       'Minha frase segura 123!',
     );
     tester.testTextInput.hide();
-    await tester.ensureVisible(find.text('ENTRAR'));
+    // A lista é montada sob demanda: com o link "Esqueci minha senha" o botão
+    // pode nascer fora da área visível, então rolamos até ele.
+    await tester.scrollUntilVisible(
+      find.text('ENTRAR'),
+      150,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('ENTRAR'));
     await tester.pumpAndSettle();
     expect(find.text('E-mail ou senha incorretos.'), findsOneWidget);
