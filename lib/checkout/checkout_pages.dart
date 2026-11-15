@@ -405,6 +405,9 @@ class _BagProductHeading extends StatelessWidget {
   );
 }
 
+/// Sentinela: "_loadQuote sem mudar o cupom".
+const _keep = Object();
+
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key, required this.repository});
   final CommerceRepository repository;
@@ -447,10 +450,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   int get _totalCents => _quote!.shippingRequired
-      ? _quote!.cart.subtotalCents + (_shipping?.priceCents ?? 0)
+      ? _quote!.cart.subtotalCents -
+            _quote!.discountCents +
+            (_shipping?.priceCents ?? 0)
       : _quote!.totalCents;
   String? _error;
   bool _busy = false;
+  // Cupom aceito pela API; só entra no pedido depois de validado na cotação.
+  String? _coupon;
+  bool _couponOpen = false;
+  final _couponField = TextEditingController();
   @override
   void initState() {
     super.initState();
@@ -467,16 +476,41 @@ class _CheckoutPageState extends State<CheckoutPage> {
     for (final c in _fields.values) {
       c.dispose();
     }
+    _couponField.dispose();
     super.dispose();
   }
 
-  Future<void> _loadQuote({bool calculate = false}) async {
+  Future<void> _applyCoupon({bool remove = false}) async {
+    final code = _couponField.text.trim().toUpperCase();
+    if (!remove && !RegExp(r'^[A-Z0-9_-]{3,30}$').hasMatch(code)) {
+      setState(() => _error = 'Digite o código do cupom (letras e números).');
+      return;
+    }
+    final previous = _coupon;
+    final ok = await _loadQuote(
+      calculate: _ratesCurrent,
+      coupon: remove ? null : code,
+    );
+    if (!mounted) return;
+    setState(() {
+      if (ok) {
+        _coupon = remove ? null : _quote?.couponCode;
+        if (remove) _couponField.clear();
+      } else {
+        _coupon = previous;
+      }
+    });
+  }
+
+  /// Atualiza a cotação. Devolve false quando a API recusou (ex.: cupom inválido).
+  Future<bool> _loadQuote({bool calculate = false, Object? coupon = _keep}) async {
+    final code = identical(coupon, _keep) ? _coupon : coupon as String?;
     final postalCode = value('postal_code').replaceAll(RegExp(r'\D'), '');
     if (calculate && !RegExp(r'^\d{8}$').hasMatch(postalCode)) {
       setState(
         () => _error = 'Informe os 8 números do CEP para calcular a entrega.',
       );
-      return;
+      return false;
     }
     setState(() {
       _busy = true;
@@ -487,6 +521,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     try {
       final quote = await widget.repository.quote(
         postalCode: calculate ? postalCode : null,
+        coupon: code,
       );
       if (mounted) {
         setState(() {
@@ -494,8 +529,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
           _ratesCurrent = calculate;
         });
       }
+      return true;
     } catch (e) {
       if (mounted) setState(() => _error = errorText(e));
+      return false;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -519,6 +556,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         'shipping_quote_id': _quote!.shippingQuoteId,
         'shipping_service_id': _shipping!.id,
       },
+      'coupon_code': ?_coupon,
       'payer_email': value('email'),
       'payer_document': value('document').replaceAll(RegExp(r'\D'), ''),
       'address': {
@@ -569,7 +607,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             );
             return;
           }
-          final quote = await widget.repository.quote();
+          final quote = await widget.repository.quote(coupon: _coupon);
           if (mounted) setState(() => _quote = quote);
         } catch (_) {
           /* Keep the original error and allow a fresh review. */
@@ -756,6 +794,60 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     'Prazo estimado: ${_quote!.shippingDays} dias úteis após aprovação.',
                   ),
                 ],
+                const SizedBox(height: 12),
+                if (_coupon != null)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Cupom $_coupon: − ${money(_quote!.discountCents)}',
+                          key: const ValueKey('coupon-applied'),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _busy || _attempt != null
+                            ? null
+                            : () => _applyCoupon(remove: true),
+                        child: const Text('REMOVER'),
+                      ),
+                    ],
+                  )
+                else if (!_couponOpen)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: _busy || _attempt != null
+                          ? null
+                          : () => setState(() => _couponOpen = true),
+                      child: const Text('Tem um cupom?'),
+                    ),
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          key: const ValueKey('coupon'),
+                          controller: _couponField,
+                          enabled: !_busy && _attempt == null,
+                          maxLength: 30,
+                          textCapitalization: TextCapitalization.characters,
+                          onSubmitted: (_) => _applyCoupon(),
+                          decoration: const InputDecoration(
+                            labelText: 'Código do cupom',
+                            counterText: '',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: _busy || _attempt != null
+                            ? null
+                            : () => _applyCoupon(),
+                        child: const Text('APLICAR'),
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 12),
                 Text(
                   '${_quote!.shippingRequired && _shipping == null ? 'Produtos (frete a calcular)' : 'Total'}: ${money(_totalCents)}',

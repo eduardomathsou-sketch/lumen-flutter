@@ -93,7 +93,7 @@ class FakeCommerce implements CommerceRepository {
   }
 
   @override
-  Future<CheckoutQuote> quote({String? postalCode}) async =>
+  Future<CheckoutQuote> quote({String? postalCode, String? coupon}) async =>
       CheckoutQuote.fromJson({
         ...data,
         'shipping_cents': 1500,
