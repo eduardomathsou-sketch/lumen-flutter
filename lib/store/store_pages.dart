@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../account/account_controller.dart';
 import '../checkout/checkout_pages.dart';
 import '../checkout/commerce_api.dart' show maxUnitsPerItem;
+import 'reviews.dart';
 import 'catalog_api.dart';
 import 'store_layout.dart';
 
@@ -640,6 +641,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ProductInfoSection(
                           title: 'Cuidados',
                           text: product.care!,
+                        ),
+                      if (product.ratingCount > 0)
+                        ProductReviews(
+                          productId: product.id,
+                          load: widget.account.api.reviews,
                         ),
                     ],
                   ),

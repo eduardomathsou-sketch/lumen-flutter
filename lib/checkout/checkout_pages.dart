@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import 'commerce_api.dart';
 import 'order_delivery.dart';
+import '../store/reviews.dart';
 import '../store/store_layout.dart';
 
 String errorText(Object error) => error is CommerceException
@@ -1275,6 +1276,11 @@ class _OrderPageState extends State<OrderPage> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 12),
                   DeliveryProgress(order),
+                  if (order.delivered && widget.repository is ReviewWriter)
+                    ReviewItems(
+                      items: order.items,
+                      writer: widget.repository as ReviewWriter,
+                    ),
                   if (order.delivered && widget.repository is OrderReturns)
                     ReturnSection(
                       order: order,

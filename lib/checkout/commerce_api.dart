@@ -201,6 +201,11 @@ abstract class OrderReturns {
   Future<ReturnInfo> requestReturn(String orderId, String reason, String details);
 }
 
+/// Avaliar uma peça recebida (a API só aceita de quem tem pedido entregue com ela).
+abstract class ReviewWriter {
+  Future<Json> saveReview(int productId, int rating, String comment);
+}
+
 abstract class CommerceRepository {
   Future<CartSnapshot> cart();
   Future<CartSnapshot> setQuantity(
@@ -218,7 +223,7 @@ abstract class CommerceRepository {
   Future<StoreOrder> cancel(String id);
 }
 
-class CommerceApi implements CommerceRepository, OrderReturns {
+class CommerceApi implements CommerceRepository, OrderReturns, ReviewWriter {
   CommerceApi({
     http.Client? client,
     String? baseUrl,
@@ -380,6 +385,24 @@ class CommerceApi implements CommerceRepository, OrderReturns {
     );
     return returnInfo(orderId);
   }
+
+  @override
+  Future<Json> saveReview(int productId, int rating, String comment) async =>
+      await _send(
+            'PUT',
+            '/products/$productId/reviews/me',
+            body: {'rating': rating, 'comment': comment},
+          )
+          as Json;
+
+  /// Avaliações públicas de uma peça: média, total e as mais recentes.
+  Future<Json> reviews(int productId, {int limit = 10}) async =>
+      await _send(
+            'GET',
+            '/products/$productId/reviews?limit=$limit',
+            authenticated: false,
+          )
+          as Json;
 
   Future<dynamic> accountRequest(String method, String path, {Json? body}) =>
       _send(method, path, body: body);
