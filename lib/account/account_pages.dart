@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../checkout/checkout_pages.dart';
 import '../admin/admin_api.dart';
+import '../admin/admin_coupons.dart';
 import '../admin/admin_orders.dart';
 import '../admin/admin_pages.dart';
 import 'account_controller.dart';
@@ -198,6 +199,27 @@ class ProfilePage extends StatelessWidget {
                   MaterialPageRoute<void>(
                     builder: (_) => AdminOrdersPage(
                       repository: AdminOrdersApi(account.api),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
+                leading: const Icon(Icons.local_offer_outlined),
+                title: const Text('Cupons'),
+                subtitle: const Text('Criar, pausar e acompanhar o uso'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => AdminCouponsPage(
+                      repository: AdminCouponsApi(account.api),
                     ),
                   ),
                 ),
