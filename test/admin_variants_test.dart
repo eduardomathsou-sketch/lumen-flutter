@@ -53,10 +53,11 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('variant-color')), 'Champagne');
     await tester.tap(find.text('SALVAR'));
     await tester.pumpAndSettle();
-    expect(repo.saves.last, (
-      null,
+    expect(repo.saves.last.$1, isNull);
+    expect(
+      repo.saves.last.$2,
       {'size': 'M', 'color': 'Champagne', 'stock': 5, 'is_active': true},
-    ));
+    );
     expect(find.text('Estoque total à venda: 9 unidades'), findsOneWidget);
 
     await tester.tap(find.text('P / Champagne'));
