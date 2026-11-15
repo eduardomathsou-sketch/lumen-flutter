@@ -7,6 +7,7 @@ import '../admin/admin_pages.dart';
 import 'account_controller.dart';
 import 'legal_pages.dart';
 import 'password_pages.dart';
+import 'privacy_pages.dart';
 import 'security_pages.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -171,6 +172,44 @@ class ProfilePage extends StatelessWidget {
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => SecurityPage(account: account),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+              leading: const Icon(Icons.person_outline),
+              title: const Text('Meus dados'),
+              subtitle: const Text('Nome e celular'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => ProfileEditPage(account: account),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: const Text('Privacidade'),
+              subtitle: const Text('Comunicações, cópia dos dados e exclusão da conta'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => PrivacyPage(account: account),
                 ),
               ),
             ),
