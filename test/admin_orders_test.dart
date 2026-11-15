@@ -72,6 +72,12 @@ class FakeOrdersAdmin implements AdminOrdersRepository {
   }
 }
 
+/// Espera o aviso de confirmação sumir (ele fica sobre os botões do fim da tela).
+Future<void> waitSnackBar(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 5));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('lists orders by filter', (tester) async {
     final repo = FakeOrdersAdmin();
@@ -106,6 +112,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(repo.actions, ['confirm']);
     expect(find.text('Pago · a preparar'), findsOneWidget);
+    await waitSnackBar(tester);
 
     await tester.ensureVisible(find.byType(TextField));
     await tester.enterText(find.byType(TextField), ' BR123456789BR ');
@@ -115,6 +122,7 @@ void main() {
     expect(repo.actions.last, 'shipped:BR123456789BR');
     expect(find.text('Enviado'), findsOneWidget);
     expect(find.text('Rastreio: BR123456789BR'), findsOneWidget);
+    await waitSnackBar(tester);
 
     await tester.ensureVisible(find.text('MARCAR COMO ENTREGUE'));
     await tester.tap(find.text('MARCAR COMO ENTREGUE'));
