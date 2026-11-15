@@ -8,7 +8,7 @@ dos dois repositórios:
   branch [`evolucao-semestre`](https://github.com/eduardomathsou-sketch/Lumen-backend/tree/evolucao-semestre)
   ([Pull Request #1](https://github.com/eduardomathsou-sketch/Lumen-backend/pull/1)).
 
-Atualizado em 10/11/2026.
+Atualizado em 15/11/2026.
 
 **Publicação própria (em andamento):** loja em <https://lumen-store-omega.vercel.app> e API em
 <https://lumen-api-wine.vercel.app>, com banco PostgreSQL na Neon (São Paulo).
@@ -19,12 +19,12 @@ Atualizado em 10/11/2026.
 
 | | Tarefas |
 | --- | --- |
-| ✅ Prontas | 12 de 22 |
-| 🟡 Parciais | 9 de 22 |
+| ✅ Prontas | 18 de 22 |
+| 🟡 Parciais | 3 de 22 |
 | ⏳ A fazer | 1 de 22 |
 
-Nas parciais, a regra de negócio já está pronta e testada na API; o que falta é a tela no app
-ou uma conta externa (Mercado Pago, Melhor Envio).
+As três parciais já funcionam de ponta a ponta em modo de teste; o que falta é uma conta
+externa (Mercado Pago, Melhor Envio) ou concluir a publicação. A única a fazer é o APK.
 
 ## As 22 tarefas
 
@@ -36,20 +36,20 @@ ou uma conta externa (Mercado Pago, Melhor Envio).
 | 4 | Criar tela de Cadastro | P | ✅ Cadastro com aceite dos Termos (obrigatório) e de novidades (opcional), como pede a LGPD | App: `AuthPage` em `lib/account/account_pages.dart`, `lib/account/legal_pages.dart` · API: `POST /auth/register`, `GET /legal` |
 | 5 | Criar tela Home | M | ✅ Vitrine com banner da coleção, categorias e produtos vindos da API | App: `lib/main.dart`, `lib/store/collection_banner.dart` |
 | 6 | Criar listagem de Produtos | M | ✅ Lista paginada por categoria, com carregamento, erro e nova tentativa | App: `CatalogPage` em `lib/store/store_pages.dart`, `lib/store/catalog_api.dart` · API: `GET /products`, `GET /categories` |
-| 7 | Criar tela de Detalhes do Produto | P | 🟡 Detalhe com foto, preço, quantidade e favorito. **Falta no app:** escolher tamanho/cor e mostrar composição e cuidados (a API já entrega) | App: `ProductDetailPage` em `lib/store/store_pages.dart` · API: `GET /products/{id}`, `app/models/product_variant.py` |
+| 7 | Criar tela de Detalhes do Produto | P | ✅ Foto, preço, escolha de tamanho e cor (esgotados bloqueados), estoque da variação, nota média, composição, cuidados e avaliações | App: `ProductDetailPage` em `lib/store/store_pages.dart` · API: `GET /products/{id}`, `app/models/product_variant.py` |
 | 8 | Criar busca de produtos | P | ✅ Busca por nome, protegida contra caracteres especiais | App: `CatalogPage` · API: `GET /products?search=` (`app/repositories/product_repository.py`) |
 | 9 | Criar Carrinho de Compras | M | ✅ Sacola com quantidades, remoção e preço sempre calculado pelo servidor; a sacola de visitante passa para a conta no login | App: `BagPage` em `lib/checkout/checkout_pages.dart` · API: `app/services/cart_service.py` |
-| 10 | Criar tela Minha Conta | P | 🟡 Perfil, favoritos, segurança (trocar senha, aparelhos) e sair. **Falta no app:** editar nome/telefone e a área de privacidade (baixar dados, excluir conta), que a API já tem | App: `ProfilePage` em `lib/account/account_pages.dart` · API: `app/api/v1/endpoints/users.py` |
-| 11 | Criar cadastro/edição de endereço | P | 🟡 O endereço é preenchido e validado no checkout. **Falta no app:** a tela de endereços salvos (a API guarda até 10 por conta) | App: `CheckoutPage` · API: `/users/me/addresses`, `app/services/user_service.py` |
+| 10 | Criar tela Minha Conta | P | ✅ Perfil, favoritos, Meus dados (nome e celular), segurança (trocar senha, aparelhos), Privacidade (novidades, baixar dados e excluir conta, com senha) e sair | App: `ProfilePage` em `lib/account/account_pages.dart`, `lib/account/privacy_pages.dart` · API: `app/api/v1/endpoints/users.py` |
+| 11 | Criar cadastro/edição de endereço | P | ✅ Meus endereços (criar, editar, excluir, padrão; até 10) e escolha rápida no checkout, com o endereço padrão já preenchido | App: `lib/account/address_pages.dart`, `CheckoutPage` · API: `/users/me/addresses`, `app/services/user_service.py` |
 | 12 | Criar tela de Checkout | M | ✅ Endereço, CPF/CNPJ validado, frete, resumo e proteção contra pedido duplicado (`Idempotency-Key`) | App: `CheckoutPage` em `lib/checkout/checkout_pages.dart` · API: `app/services/order_service.py` |
-| 13 | Integrar API de Pagamento | G | 🟡 PIX completo em modo de teste e integração com o Mercado Pago pronta (assinatura do aviso + reconsulta + conferência de valor). **Falta:** a conta de produção do Mercado Pago | API: `app/services/payment_service.py`, `app/services/mercado_pago_orders.py` · App: `OrderPage` |
+| 13 | Integrar API de Pagamento | G | 🟡 PIX completo em modo de teste (a administração confirma o PIX de teste pelo painel) e integração com o Mercado Pago pronta (assinatura do aviso + reconsulta + conferência de valor). **Falta:** a conta de produção do Mercado Pago | API: `app/services/payment_service.py`, `app/services/mercado_pago_orders.py` · App: `OrderPage` |
 | 14 | Integrar API de Frete/Envio | M | 🟡 Frete fixo funcionando e integração com o Melhor Envio pronta (PAC/SEDEX). **Falta:** o token do Melhor Envio | API: `app/services/shipping_service.py`, [SHIPPING.md](https://github.com/eduardomathsou-sketch/Lumen-backend/blob/evolucao-semestre/SHIPPING.md) · App: escolha de frete no `CheckoutPage` |
-| 15 | Criar sistema de Cupons | M | 🟡 Pronto na API (percentual ou valor fixo, validade, limite de usos, proteção contra chute de código). **Falta no app:** o campo de cupom e a gestão no painel | API: `app/services/coupon_service.py`, `/admin/coupons` |
-| 16 | Criar sistema de Avaliações | M | 🟡 Pronto na API (1 a 5 estrelas, só de quem recebeu o produto). **Falta no app:** mostrar e enviar avaliações | API: `app/services/review_service.py`, `/products/{id}/reviews` |
-| 17 | Criar tela Meus Pedidos | M | 🟡 Lista e detalhe do pedido com retomada do PIX. **Falta no app:** status de entrega, rastreio e pedido de devolução (a API já tem) | App: `OrdersPage` e `OrderPage` em `lib/checkout/checkout_pages.dart` · API: `app/api/v1/endpoints/orders.py`, `app/services/return_service.py` |
+| 15 | Criar sistema de Cupons | M | ✅ Campo de cupom no checkout (validado pela API, desconto no total) e gestão no painel (percentual ou valor fixo, compra mínima, validade, limite de usos, pausa). Proteção contra chute de código | App: `CheckoutPage`, `lib/admin/admin_coupons.dart` · API: `app/services/coupon_service.py`, `/admin/coupons` |
+| 16 | Criar sistema de Avaliações | M | ✅ Avaliações na página da peça e botão "Avaliar" no pedido entregue (1 a 5 estrelas e comentário). Só quem recebeu avalia; aparece só o primeiro nome | App: `lib/store/reviews.dart` · API: `app/services/review_service.py`, `/products/{id}/reviews` |
+| 17 | Criar tela Meus Pedidos | M | ✅ Lista com etapa e data; detalhe com retomada do PIX, linha do tempo da entrega, rastreio e pedido de devolução (7 dias arrependimento, 90 defeito). No painel: pedidos da loja, envio e entrega | App: `OrdersPage`/`OrderPage`, `lib/checkout/order_delivery.dart`, `lib/admin/admin_orders.dart` · API: `app/api/v1/endpoints/orders.py`, `app/services/return_service.py` |
 | 18 | Criar confirmação de pedido | P | ✅ Tela do pedido com PIX copia-e-cola, atualização automática e e-mail de confirmação | App: `OrderPage` · API: `app/services/notification_service.py`, `app/services/email_templates.py` |
 | 19 | Conectar aplicativo ao banco/API | G | 🟡 App ligado à API (teste de contrato roda a cada push) e banco PostgreSQL criado na Neon. **Falta:** concluir a publicação própria na Vercel | App: `lib/api_config.dart`, `test/backend_contract_test.dart` · API: `migrations/` (0001 a 0010) |
-| 20 | Realizar testes básicos do aplicativo | M | ✅ 122 testes automáticos na API (SQLite e PostgreSQL) e 28 no app, executados pelo GitHub Actions a cada push | App: `test/`, `.github/workflows/app.yml` · API: `tests/`, `.github/workflows/` |
+| 20 | Realizar testes básicos do aplicativo | M | ✅ 124 testes automáticos na API (SQLite e PostgreSQL) e 56 no app, executados pelo GitHub Actions a cada push | App: `test/`, `.github/workflows/app.yml` · API: `tests/`, `.github/workflows/` |
 | 21 | Corrigir erros encontrados | M | ✅ Revisão de segurança feita e corrigida (lista abaixo); continua a cada entrega | Histórico de commits dos dois repositórios |
 | 22 | Gerar versão Android para testes | P | ⏳ A pasta `android/` existe; falta gerar o APK de teste | `android/` |
 
