@@ -203,6 +203,7 @@ class _PrivacyPageState extends State<PrivacyPage> {
     try {
       await widget.account.deleteAccount(password);
       if (!mounted) return;
+      setState(() => _busy = false);
       _say('Sua conta foi excluída.');
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {

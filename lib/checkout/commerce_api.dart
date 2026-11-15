@@ -121,17 +121,44 @@ class StoreOrder {
       address = json['address'] as Json,
       payment = json['payment'] as Json?,
       createdAt = DateTime.parse(_utc(json['created_at'] as String)),
-      expiresAt = DateTime.parse(_utc(json['expires_at'] as String));
+      expiresAt = DateTime.parse(_utc(json['expires_at'] as String)),
+      discountCents = json['discount_cents'] as int? ?? 0,
+      couponCode = json['coupon_code'] as String?,
+      fulfillmentStatus = json['fulfillment_status'] as String?,
+      trackingCode = json['tracking_code'] as String?,
+      shippedAt = _date(json['shipped_at']),
+      deliveredAt = _date(json['delivered_at']);
   static String _utc(String value) =>
       RegExp(r'(Z|[+-]\d\d:\d\d)$').hasMatch(value) ? value : '${value}Z';
+  static DateTime? _date(Object? value) =>
+      value is String ? DateTime.parse(_utc(value)) : null;
   final String id, status, shippingLabel;
-  final int totalCents, subtotalCents, shippingCents;
+  final int totalCents, subtotalCents, shippingCents, discountCents;
   final List<Json> items;
   final Json address;
   final Json? payment;
   final DateTime createdAt, expiresAt;
+  final String? couponCode, fulfillmentStatus, trackingCode;
+  final DateTime? shippedAt, deliveredAt;
   bool get pending => status == 'awaiting_payment';
   bool get paid => status == 'paid';
+  bool get delivered => paid && fulfillmentStatus == 'delivered';
+
+  /// Etapa da entrega depois do pagamento: 0 preparando, 1 enviado, 2 entregue.
+  int get deliveryStep => switch (fulfillmentStatus) {
+    'shipped' => 1,
+    'delivered' => 2,
+    _ => 0,
+  };
+
+  /// Para a lista: depois de pago, o que importa é em que pé está a entrega.
+  String get progressLabel => !paid
+      ? statusLabel
+      : switch (fulfillmentStatus) {
+          'shipped' => 'Enviado',
+          'delivered' => 'Entregue',
+          _ => 'Pago · em preparação',
+        };
   bool get sandbox => payment?['provider'] == 'sandbox';
   Json get nextAction => payment?['next_action'] as Json? ?? {};
   String get statusLabel => switch (status) {
@@ -143,6 +170,35 @@ class StoreOrder {
     'review_required' => 'Pagamento em análise pela loja',
     _ => 'Pedido em processamento',
   };
+}
+
+/// Devolução de um pedido entregue (arrependimento em 7 dias, defeito em 90).
+class ReturnInfo {
+  ReturnInfo.fromJson(Json json)
+    : eligible = json['eligible'] == true,
+      deadlines = {
+        for (final e in ((json['reasons'] as Map?) ?? {}).entries)
+          e.key as String: DateTime.parse(StoreOrder._utc(e.value as String)),
+      },
+      request = json['request'] as Json?;
+  final bool eligible;
+  final Map<String, DateTime> deadlines;
+  final Json? request;
+
+  String? get requestStatusLabel => switch (request?['status']) {
+    null => null,
+    'requested' => 'Solicitação enviada · aguardando a loja',
+    'approved' => 'Devolução aprovada · aguarde as instruções por e-mail',
+    'rejected' => 'Devolução não aprovada',
+    'refunded' => 'Devolução concluída · valor reembolsado',
+    _ => 'Devolução em andamento',
+  };
+}
+
+/// Implementado pela API real; telas de teste podem não ter devoluções.
+abstract class OrderReturns {
+  Future<ReturnInfo> returnInfo(String orderId);
+  Future<ReturnInfo> requestReturn(String orderId, String reason, String details);
 }
 
 abstract class CommerceRepository {
@@ -162,7 +218,7 @@ abstract class CommerceRepository {
   Future<StoreOrder> cancel(String id);
 }
 
-class CommerceApi implements CommerceRepository {
+class CommerceApi implements CommerceRepository, OrderReturns {
   CommerceApi({
     http.Client? client,
     String? baseUrl,
@@ -305,6 +361,24 @@ class CommerceApi implements CommerceRepository {
     _accountToken = token;
     _loadingAccount = Future.value();
     return result['user'] as Json;
+  }
+
+  @override
+  Future<ReturnInfo> returnInfo(String orderId) async =>
+      ReturnInfo.fromJson(await _send('GET', '/orders/${Uri.encodeComponent(orderId)}/return') as Json);
+
+  @override
+  Future<ReturnInfo> requestReturn(
+    String orderId,
+    String reason,
+    String details,
+  ) async {
+    await _send(
+      'POST',
+      '/orders/${Uri.encodeComponent(orderId)}/return',
+      body: {'reason': reason, 'details': details},
+    );
+    return returnInfo(orderId);
   }
 
   Future<dynamic> accountRequest(String method, String path, {Json? body}) =>

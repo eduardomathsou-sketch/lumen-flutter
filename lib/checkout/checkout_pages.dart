@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'commerce_api.dart';
+import 'order_delivery.dart';
 import '../store/store_layout.dart';
 
 String errorText(Object error) => error is CommerceException
@@ -1031,7 +1032,9 @@ class _OrdersPageState extends State<OrdersPage> {
                 title: Text(
                   'Pedido ${order.id.substring(0, 8)} — ${money(order.totalCents)}',
                 ),
-                subtitle: Text(order.statusLabel),
+                subtitle: Text(
+                  '${order.progressLabel} · ${shortDate(order.createdAt)}',
+                ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () async {
                   await Navigator.of(context).push(
@@ -1180,6 +1183,10 @@ class _OrderPageState extends State<OrderPage> with WidgetsBindingObserver {
                 Text(
                   '${item['quantity']} × ${item['name']} — ${money((item['unit_price_cents'] as int) * (item['quantity'] as int))}',
                 ),
+              if (order.discountCents > 0)
+                Text(
+                  'Cupom ${order.couponCode ?? ''}: − ${money(order.discountCents)}',
+                ),
               Text('${order.shippingLabel}: ${money(order.shippingCents)}'),
               Text(
                 'Total: ${money(order.totalCents)}',
@@ -1262,10 +1269,19 @@ class _OrderPageState extends State<OrderPage> with WidgetsBindingObserver {
                   child: const Text('CANCELAR PEDIDO'),
                 ),
               ] else ...[
-                if (order.paid)
+                if (order.paid) ...[
                   const Text(
                     'Recebemos seu pagamento. Seu pedido está confirmado.',
                   ),
+                  const SizedBox(height: 12),
+                  DeliveryProgress(order),
+                  if (order.delivered && widget.repository is OrderReturns)
+                    ReturnSection(
+                      order: order,
+                      returns: widget.repository as OrderReturns,
+                    ),
+                  const SizedBox(height: 12),
+                ],
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text('VOLTAR'),
