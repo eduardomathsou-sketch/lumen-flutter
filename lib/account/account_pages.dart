@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../checkout/checkout_pages.dart';
 import '../admin/admin_api.dart';
+import '../admin/admin_orders.dart';
 import '../admin/admin_pages.dart';
 import 'account_controller.dart';
 import 'legal_pages.dart';
@@ -196,6 +197,27 @@ class ProfilePage extends StatelessWidget {
                   );
                   onCatalogChanged?.call();
                 },
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
+                leading: const Icon(Icons.receipt_long_outlined),
+                title: const Text('Pedidos da loja'),
+                subtitle: const Text('Pagamento, envio e entrega'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => AdminOrdersPage(
+                      repository: AdminOrdersApi(account.api),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
