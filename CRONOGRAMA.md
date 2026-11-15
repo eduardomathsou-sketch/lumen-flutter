@@ -19,12 +19,12 @@ Atualizado em 15/11/2026.
 
 | | Tarefas |
 | --- | --- |
-| ✅ Prontas | 18 de 22 |
+| ✅ Prontas | 19 de 22 |
 | 🟡 Parciais | 3 de 22 |
-| ⏳ A fazer | 1 de 22 |
+| ⏳ A fazer | 0 de 22 |
 
 As três parciais já funcionam de ponta a ponta em modo de teste; o que falta é uma conta
-externa (Mercado Pago, Melhor Envio) ou concluir a publicação. A única a fazer é o APK.
+externa (Mercado Pago, Melhor Envio) ou concluir a publicação.
 
 ## As 22 tarefas
 
@@ -51,7 +51,7 @@ externa (Mercado Pago, Melhor Envio) ou concluir a publicação. A única a faze
 | 19 | Conectar aplicativo ao banco/API | G | 🟡 App ligado à API (teste de contrato roda a cada push) e banco PostgreSQL criado na Neon. **Falta:** concluir a publicação própria na Vercel | App: `lib/api_config.dart`, `test/backend_contract_test.dart` · API: `migrations/` (0001 a 0010) |
 | 20 | Realizar testes básicos do aplicativo | M | ✅ 124 testes automáticos na API (SQLite e PostgreSQL) e 56 no app, executados pelo GitHub Actions a cada push | App: `test/`, `.github/workflows/app.yml` · API: `tests/`, `.github/workflows/` |
 | 21 | Corrigir erros encontrados | M | ✅ Revisão de segurança feita e corrigida (lista abaixo); continua a cada entrega | Histórico de commits dos dois repositórios |
-| 22 | Gerar versão Android para testes | P | ⏳ A pasta `android/` existe; falta gerar o APK de teste | `android/` |
+| 22 | Gerar versão Android para testes | P | ✅ O GitHub Actions gera o APK de teste a cada push, já apontando para a API publicada, com o ícone da Lumen (baixar em Actions → run → Artifacts) | `android/`, job `android` em `.github/workflows/app.yml` |
 
 ## Plano por aula
 
@@ -77,3 +77,4 @@ A aula de 10/11 foi adiada; as entregas de 10/11 e 17/11 serão mostradas juntas
 | Um robô podia reservar o estoque criando pedidos sem pagar | Limite de pedidos por IP e de unidades de cada produto por pedido |
 | O site podia ser embutido em outra página (clickjacking) | Cabeçalhos `X-Frame-Options` e `frame-ancestors` no site e na API |
 | Um código de acesso roubado valia até vencer | Aparelhos conectados (ver e desconectar), sessão da administração de 12 horas e teto de sessões por conta |
+| A cópia dos dados pessoais ia direto para a área de transferência (outros apps podem ler) | A cópia aparece na tela e copiar vira uma escolha, com aviso para limpar depois |
