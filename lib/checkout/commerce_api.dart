@@ -329,7 +329,7 @@ class CommerceApi implements CommerceRepository {
       body: {
         'quantity': quantity,
         'version': version,
-        if (variantId != null) 'variant_id': variantId,
+        'variant_id': ?variantId,
       },
     ) as Json,
   );
