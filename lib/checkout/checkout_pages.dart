@@ -30,9 +30,19 @@ class RetryNotice extends StatelessWidget {
   );
 }
 
+/// Endereços salvos da conta logada (null quando é compra sem login).
+typedef SavedAddresses = Future<List<Json>> Function();
+
 class BagPage extends StatefulWidget {
-  const BagPage({super.key, required this.repository});
+  const BagPage({
+    super.key,
+    required this.repository,
+    this.savedAddresses,
+    this.email,
+  });
   final CommerceRepository repository;
+  final SavedAddresses? savedAddresses;
+  final String? email;
   @override
   State<BagPage> createState() => _BagPageState();
 }
@@ -335,7 +345,13 @@ class _BagPageState extends State<BagPage> {
                     cart.activeOrderId != null ||
                     cart.items.any((x) => !x.available || x.stock < x.quantity)
                 ? null
-                : () => _open(CheckoutPage(repository: widget.repository)),
+                : () => _open(
+                    CheckoutPage(
+                      repository: widget.repository,
+                      savedAddresses: widget.savedAddresses,
+                      email: widget.email,
+                    ),
+                  ),
             child: const Text('CONTINUAR COMPRA', textAlign: TextAlign.center),
           ),
         ],
@@ -409,8 +425,15 @@ class _BagProductHeading extends StatelessWidget {
 const _keep = Object();
 
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({super.key, required this.repository});
+  const CheckoutPage({
+    super.key,
+    required this.repository,
+    this.savedAddresses,
+    this.email,
+  });
   final CommerceRepository repository;
+  final SavedAddresses? savedAddresses;
+  final String? email;
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
 }
@@ -460,12 +483,54 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String? _coupon;
   bool _couponOpen = false;
   final _couponField = TextEditingController();
+  // Endereços da conta: tocar num deles só preenche o formulário (a API valida tudo de novo).
+  List<Json> _saved = [];
+  int? _savedId;
   @override
   void initState() {
     super.initState();
+    _fields['email']!.text = widget.email ?? '';
     _newKey();
     _loadQuote();
+    _loadSaved();
   }
+
+  Future<void> _loadSaved() async {
+    final load = widget.savedAddresses;
+    if (load == null) return;
+    try {
+      final items = await load();
+      if (!mounted || items.isEmpty) return;
+      setState(() => _saved = items);
+      final standard = items.firstWhere(
+        (a) => a['is_default'] == true,
+        orElse: () => items.first,
+      );
+      if (value('postal_code').isEmpty && value('street').isEmpty) {
+        _useSaved(standard);
+      }
+    } catch (_) {
+      // Sem a lista, a cliente digita o endereço normalmente.
+    }
+  }
+
+  void _useSaved(Json address) => setState(() {
+    for (final key in [
+      'recipient',
+      'postal_code',
+      'street',
+      'number',
+      'complement',
+      'district',
+      'city',
+      'state',
+    ]) {
+      _fields[key]!.text = address[key] as String? ?? '';
+    }
+    _savedId = address['id'] as int?;
+    _ratesCurrent = false;
+    _shippingServiceId = null;
+  });
 
   void _newKey() => _key = List.generate(
     24,
@@ -726,6 +791,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
+                if (_saved.isNotEmpty) ...[
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final address in _saved)
+                        ChoiceChip(
+                          key: ValueKey('saved-address-${address['id']}'),
+                          label: Text(address['label'] as String? ?? 'Endereço'),
+                          selected: _savedId == address['id'],
+                          onSelected: _busy || _attempt != null
+                              ? null
+                              : (_) => _useSaved(address),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 field('recipient', 'Nome de quem recebe'),
                 field('postal_code', 'CEP', keyboard: TextInputType.number),
                 field('street', 'Rua'),

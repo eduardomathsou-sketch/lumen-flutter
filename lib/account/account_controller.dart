@@ -145,6 +145,22 @@ class AccountController extends ChangeNotifier {
     _changed();
   }
 
+  // --- Endereços salvos (até 10 por conta) ---
+  Future<List<Json>> addresses() async =>
+      (await api.accountRequest('GET', '/users/me/addresses') as List).cast<Json>();
+
+  Future<Json> saveAddress(Json data, {int? id}) async =>
+      await api.accountRequest(
+            id == null ? 'POST' : 'PUT',
+            id == null ? '/users/me/addresses' : '/users/me/addresses/$id',
+            body: data,
+          )
+          as Json;
+
+  Future<void> deleteAddress(int id) async {
+    await api.accountRequest('DELETE', '/users/me/addresses/$id');
+  }
+
   // --- Meus dados e privacidade (LGPD) ---
   Future<void> updateProfile({String? fullName, String? phone}) async {
     user =

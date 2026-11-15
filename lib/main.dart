@@ -391,7 +391,11 @@ class _LumenHomeState extends State<LumenHome> {
   Future<void> _openBag() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => BagPage(repository: widget.commerceRepository),
+        builder: (_) => BagPage(
+          repository: widget.commerceRepository,
+          savedAddresses: _account.user == null ? null : _account.addresses,
+          email: _account.user?['email'] as String?,
+        ),
       ),
     );
     if (mounted) {

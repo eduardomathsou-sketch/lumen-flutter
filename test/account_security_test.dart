@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:lumen_store/account/account_controller.dart';
 import 'package:lumen_store/account/account_pages.dart';
+import 'package:lumen_store/account/address_pages.dart';
 import 'package:lumen_store/account/legal_pages.dart';
 import 'package:lumen_store/account/privacy_pages.dart';
 import 'package:lumen_store/account/security_pages.dart';
@@ -28,6 +29,7 @@ class FakeAccountApi {
   String? resetEmail;
   bool passwordChanged = false;
   bool deleted = false;
+  final List<Json> addresses = [];
   Json? profile;
   List<Json> devices = [
     {
@@ -111,6 +113,19 @@ class FakeAccountApi {
     if (path.endsWith('/users/me/delete')) {
       if (body['password'] != password) return reply({'detail': 'Senha incorreta.'}, 401);
       deleted = true;
+      return http.Response('', 204);
+    }
+    if (path.endsWith('/users/me/addresses') && request.method == 'GET') {
+      return reply(addresses);
+    }
+    if (path.endsWith('/users/me/addresses') && request.method == 'POST') {
+      final saved = {'id': addresses.length + 1, ...body};
+      addresses.add(saved);
+      return reply(saved, 201);
+    }
+    final addressMatch = RegExp(r'/users/me/addresses/(\d+)$').firstMatch(path);
+    if (addressMatch != null && request.method == 'DELETE') {
+      addresses.removeWhere((a) => '${a['id']}' == addressMatch.group(1));
       return http.Response('', 204);
     }
     return reply({'detail': 'Rota inesperada: $path'}, 404);
@@ -365,5 +380,50 @@ void main() {
     await tester.pumpAndSettle();
     expect(api.deleted, isTrue);
     expect(account.user, isNull);
+  });
+
+  testWidgets('addresses are validated, saved and listed', (tester) async {
+    phone(tester);
+    final api = FakeAccountApi();
+    final account = api.controller(signedIn: true);
+    addTearDown(account.dispose);
+    await account.initialize();
+    await tester.pumpWidget(MaterialApp(home: AddressesPage(account: account)));
+    await tester.pumpAndSettle();
+    expect(find.text('Nenhum endereço salvo ainda.'), findsOneWidget);
+
+    await tester.tap(find.text('NOVO ENDEREÇO'));
+    await tester.pumpAndSettle();
+    for (final entry in {
+      'recipient': 'Ana Lima',
+      'postal_code': '590',
+      'street': 'Rua das Flores',
+      'number': '10',
+      'district': 'Tirol',
+      'city': 'Natal',
+      'state': 'rn',
+    }.entries) {
+      final field = find.byKey(ValueKey('address-${entry.key}'));
+      await reveal(tester, field);
+      await tester.enterText(field, entry.value);
+    }
+    tester.testTextInput.hide();
+    await reveal(tester, find.text('SALVAR ENDEREÇO'));
+    await tester.tap(find.text('SALVAR ENDEREÇO'));
+    await tester.pumpAndSettle();
+    expect(find.text('CEP com 8 números.'), findsOneWidget);
+    expect(api.addresses, isEmpty);
+
+    final cep = find.byKey(const ValueKey('address-postal_code'));
+    await reveal(tester, cep);
+    await tester.enterText(cep, '59015-000');
+    tester.testTextInput.hide();
+    await reveal(tester, find.text('SALVAR ENDEREÇO'));
+    await tester.tap(find.text('SALVAR ENDEREÇO'));
+    await tester.pumpAndSettle();
+    expect(api.addresses.single['postal_code'], '59015000');
+    expect(api.addresses.single['state'], 'RN');
+    expect(find.text('Casa'), findsOneWidget);
+    expect(find.textContaining('Rua das Flores, 10'), findsOneWidget);
   });
 }

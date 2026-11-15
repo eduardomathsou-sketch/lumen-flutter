@@ -5,6 +5,7 @@ import '../admin/admin_api.dart';
 import '../admin/admin_orders.dart';
 import '../admin/admin_pages.dart';
 import 'account_controller.dart';
+import 'address_pages.dart';
 import 'legal_pages.dart';
 import 'password_pages.dart';
 import 'privacy_pages.dart';
@@ -172,6 +173,25 @@ class ProfilePage extends StatelessWidget {
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => SecurityPage(account: account),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+              leading: const Icon(Icons.location_on_outlined),
+              title: const Text('Meus endereços'),
+              subtitle: const Text('Para escolher no checkout'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => AddressesPage(account: account),
                 ),
               ),
             ),
