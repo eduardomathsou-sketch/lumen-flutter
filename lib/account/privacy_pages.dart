@@ -173,17 +173,22 @@ class _PrivacyPageState extends State<PrivacyPage> {
   Future<void> _export() async {
     final password = await _askPassword(
       'Baixar meus dados',
-      'Por segurança, confirme sua senha. A cópia vem em formato JSON e é copiada para a área de transferência.',
-      'COPIAR MEUS DADOS',
+      'Por segurança, confirme sua senha. Mostramos a cópia completa na tela e você decide se quer copiar.',
+      'VER MEUS DADOS',
     );
     if (password == null || !mounted) return;
     setState(() => _busy = true);
     try {
       final data = await widget.account.exportData(password);
-      await Clipboard.setData(
-        ClipboardData(text: const JsonEncoder.withIndent('  ').convert(data)),
+      if (!mounted) return;
+      setState(() => _busy = false);
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => _ExportPage(
+            text: const JsonEncoder.withIndent('  ').convert(data),
+          ),
+        ),
       );
-      if (mounted) _say('Seus dados foram copiados. Cole num arquivo para guardar.');
     } catch (e) {
       if (mounted) _say(errorText(e));
     } finally {
@@ -273,6 +278,47 @@ class _PrivacyPageState extends State<PrivacyPage> {
             ),
           ),
         ),
+      ),
+    ),
+  );
+}
+
+/// A cópia dos dados fica só na tela; copiar é uma escolha explícita da titular.
+class _ExportPage extends StatelessWidget {
+  const _ExportPage({required this.text});
+  final String text;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Meus dados')),
+    body: SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Text(
+            'Esta é a cópia de tudo o que a Lumen guarda sobre você. '
+            'Se copiar, cole num arquivo seu e depois copie outra coisa qualquer, '
+            'para não deixar seus dados na área de transferência.',
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: text));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Copiado.')),
+                );
+              }
+            },
+            icon: const Icon(Icons.copy),
+            label: const Text('COPIAR'),
+          ),
+          const SizedBox(height: 12),
+          SelectableText(
+            text,
+            key: const ValueKey('export-json'),
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+          ),
+        ],
       ),
     ),
   );

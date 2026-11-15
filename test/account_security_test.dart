@@ -366,10 +366,19 @@ void main() {
     await tester.tap(find.text('Baixar meus dados'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('confirm-password')), 'senha errada');
-    await tester.tap(find.text('COPIAR MEUS DADOS'));
+    await tester.tap(find.text('VER MEUS DADOS'));
     await tester.pumpAndSettle();
     expect(find.text('Senha incorreta.'), findsOneWidget);
     await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Baixar meus dados'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('confirm-password')), password);
+    await tester.tap(find.text('VER MEUS DADOS'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('cliente@example.com'), findsOneWidget);
+    await tester.pageBack();
     await tester.pumpAndSettle();
 
     await reveal(tester, find.byKey(const ValueKey('delete-account')));
