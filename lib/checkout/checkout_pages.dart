@@ -73,6 +73,7 @@ class _BagPageState extends State<BagPage> {
         line.productId,
         quantity,
         _cart!.version,
+        variantId: line.variantId,
       );
       if (mounted) setState(() => _cart = cart);
     } catch (e) {
@@ -241,7 +242,8 @@ class _BagPageState extends State<BagPage> {
                               onPressed:
                                   _busy ||
                                       cart.activeOrderId != null ||
-                                      line.quantity >= line.stock
+                                      line.quantity >= line.stock ||
+                                      line.quantity >= maxUnitsPerItem
                                   ? null
                                   : () => _change(line, line.quantity + 1),
                               icon: const Icon(Icons.add),
@@ -377,6 +379,11 @@ class _BagProductHeading extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(line.name, style: Theme.of(context).textTheme.titleMedium),
+          if (line.variantLabel != null)
+            Text(
+              line.variantLabel!,
+              style: const TextStyle(color: Color(0xFF756C62)),
+            ),
           const SizedBox(height: 6),
           Text('${money(line.unitPriceCents)} por unidade'),
         ],
@@ -692,7 +699,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 const Divider(),
                 for (final line in _quote!.cart.items)
                   Text(
-                    '${line.quantity} × ${line.name} — ${money(line.totalCents)}',
+                    '${line.quantity} × ${line.displayName} — ${money(line.totalCents)}',
                   ),
                 const SizedBox(height: 12),
                 if (_quote!.shippingRequired) ...[

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../account/account_controller.dart';
 import '../checkout/checkout_pages.dart';
+import '../checkout/commerce_api.dart' show maxUnitsPerItem;
 import 'catalog_api.dart';
 import 'store_layout.dart';
 
@@ -146,7 +147,7 @@ class CatalogTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        product.stock > 0
+                        product.availableStock > 0
                             ? product.shortDescription
                             : 'Esgotado',
                         style: const TextStyle(color: Color(0xFF756C62)),
@@ -164,7 +165,7 @@ class CatalogTile extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: 'Adicionar à sacola',
-                  onPressed: product.stock > 0 ? onAdd : null,
+                  onPressed: product.availableStock > 0 ? onAdd : null,
                   icon: const Icon(
                     Icons.add_shopping_cart,
                     color: Color(0xFF171717),
@@ -403,7 +404,7 @@ class ProductDetailPage extends StatefulWidget {
   final int productId;
   final ProductsRepository repository;
   final AccountController account;
-  final Future<void> Function(StoreProduct, int) onAdd;
+  final Future<void> Function(StoreProduct, int, ProductVariant?) onAdd;
   final VoidCallback onBag;
   @override
   State<ProductDetailPage> createState() => _ProductDetailPageState();
@@ -414,6 +415,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   int _quantity = 1;
   bool _busy = false;
   String? _error;
+  ProductVariant? _variant;
+
+  void _choose(ProductVariant variant) => setState(() {
+    _variant = variant;
+    _error = null;
+    // Só variações com estoque podem ser escolhidas, então stock >= 1 aqui.
+    if (_quantity > variant.stock) _quantity = variant.stock;
+  });
   @override
   void initState() {
     super.initState();
@@ -451,6 +460,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               return const Center(child: CircularProgressIndicator());
             }
             final product = snapshot.data!;
+            final needsChoice = product.hasVariants && _variant == null;
+            final stock = product.hasVariants
+                ? (_variant?.stock ?? 0)
+                : product.stock;
+            final soldOut = product.availableStock == 0;
             return ListView(
               padding: const EdgeInsets.all(22),
               children: [
@@ -476,15 +490,57 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         product.formattedPrice,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
+                      if (product.formattedRating != null) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.star,
+                              size: 18,
+                              color: Color(0xFFD9B66A),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(product.formattedRating!),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 20),
                       Text(
                         product.description ?? 'Uma escolha da seleção Lumen.',
                       ),
+                      if (product.hasVariants) ...[
+                        const SizedBox(height: 20),
+                        Text(
+                          'Tamanho e cor',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final variant in product.variants)
+                              ChoiceChip(
+                                label: Text(
+                                  variant.available
+                                      ? variant.label
+                                      : '${variant.label} · esgotado',
+                                ),
+                                selected: _variant?.id == variant.id,
+                                onSelected: _busy || !variant.available
+                                    ? null
+                                    : (_) => _choose(variant),
+                              ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 18),
                       Text(
-                        product.stock > 0
-                            ? '${product.stock} disponíveis'
-                            : 'Produto esgotado',
+                        soldOut
+                            ? 'Produto esgotado'
+                            : needsChoice
+                            ? 'Escolha o tamanho e a cor para continuar.'
+                            : '$stock disponíveis',
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -502,8 +558,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             tooltip: 'Aumentar',
                             onPressed:
                                 _busy ||
-                                    _quantity >= product.stock ||
-                                    _quantity >= 99
+                                    needsChoice ||
+                                    _quantity >= stock ||
+                                    _quantity >= maxUnitsPerItem
                                 ? null
                                 : () => setState(() => _quantity++),
                             icon: const Icon(Icons.add),
@@ -523,7 +580,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         label: Text(
                           _busy ? 'ADICIONANDO...' : 'ADICIONAR À SACOLA',
                         ),
-                        onPressed: _busy || product.stock == 0
+                        onPressed: _busy || stock == 0
                             ? null
                             : () async {
                                 setState(() {
@@ -531,7 +588,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   _error = null;
                                 });
                                 try {
-                                  await widget.onAdd(product, _quantity);
+                                  await widget.onAdd(
+                                    product,
+                                    _quantity,
+                                    _variant,
+                                  );
                                 } catch (e) {
                                   if (mounted) {
                                     setState(() => _error = errorText(e));
@@ -570,6 +631,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       const Text(
                         'Frete e prazo são apresentados na revisão da compra. Pagamento por PIX.',
                       ),
+                      if (product.composition != null)
+                        ProductInfoSection(
+                          title: 'Composição',
+                          text: product.composition!,
+                        ),
+                      if (product.care != null)
+                        ProductInfoSection(
+                          title: 'Cuidados',
+                          text: product.care!,
+                        ),
                     ],
                   ),
                 ),
@@ -578,6 +649,32 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           },
         ),
       ),
+    ),
+  );
+}
+
+/// Ficha da peça (composição, cuidados): título discreto e texto corrido.
+class ProductInfoSection extends StatelessWidget {
+  const ProductInfoSection({super.key, required this.title, required this.text});
+  final String title;
+  final String text;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 22),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title.toUpperCase(),
+          style: const TextStyle(
+            color: Color(0xFFD9B66A),
+            letterSpacing: 2,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(text),
+      ],
     ),
   );
 }

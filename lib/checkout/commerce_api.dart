@@ -6,6 +6,9 @@ import 'package:http/http.dart' as http;
 
 import '../api_config.dart';
 
+/// Unidades de cada produto por pedido: o mesmo limite que a API aplica.
+const maxUnitsPerItem = 10;
+
 typedef Json = Map<String, dynamic>;
 
 String money(int cents) =>
@@ -43,10 +46,16 @@ class CartLine {
       quantity = json['quantity'] as int,
       unitPriceCents = json['unit_price_cents'] as int,
       stock = json['stock'] as int,
-      available = json['available'] as bool;
+      available = json['available'] as bool,
+      variantId = json['variant_id'] as int?,
+      variantLabel = json['variant_label'] as String?;
   final int productId, quantity, unitPriceCents, stock;
   final String name;
   final String? imageUrl;
+  // Tamanho/cor escolhidos (null para peças sem variação).
+  final int? variantId;
+  final String? variantLabel;
+  String get displayName => variantLabel == null ? name : '$name · $variantLabel';
   final bool available;
   int get totalCents => unitPriceCents * quantity;
 }
@@ -134,7 +143,12 @@ class StoreOrder {
 
 abstract class CommerceRepository {
   Future<CartSnapshot> cart();
-  Future<CartSnapshot> setQuantity(int productId, int quantity, int version);
+  Future<CartSnapshot> setQuantity(
+    int productId,
+    int quantity,
+    int version, {
+    int? variantId,
+  });
   Future<CheckoutQuote> quote({String? postalCode});
   Future<StoreOrder> checkout(Json request, String idempotencyKey);
   Future<List<StoreOrder>> orders();
@@ -306,12 +320,17 @@ class CommerceApi implements CommerceRepository {
   Future<CartSnapshot> setQuantity(
     int productId,
     int quantity,
-    int version,
-  ) async => CartSnapshot.fromJson(
+    int version, {
+    int? variantId,
+  }) async => CartSnapshot.fromJson(
     await _send(
       'PUT',
       '/cart/items/$productId',
-      body: {'quantity': quantity, 'version': version},
+      body: {
+        'quantity': quantity,
+        'version': version,
+        if (variantId != null) 'variant_id': variantId,
+      },
     ) as Json,
   );
   @override

@@ -75,6 +75,7 @@ class FakeCommerce implements CommerceRepository {
   bool failFirst = false;
   bool sandbox = true;
   int checkouts = 0;
+  int? lastVariantId;
   final keys = <String>[];
   final requests = <Json>[];
   @override
@@ -83,8 +84,10 @@ class FakeCommerce implements CommerceRepository {
   Future<CartSnapshot> setQuantity(
     int productId,
     int quantity,
-    int version,
-  ) async {
+    int version, {
+    int? variantId,
+  }) async {
+    lastVariantId = variantId;
     data = cartJson(quantity: quantity, version: version + 1);
     return cart();
   }

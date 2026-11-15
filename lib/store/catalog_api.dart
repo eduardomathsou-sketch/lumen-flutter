@@ -4,6 +4,33 @@ import 'package:http/http.dart' as http;
 
 import '../api_config.dart';
 
+/// Uma combinação de tamanho e cor com estoque próprio (ex.: "M · Champagne").
+class ProductVariant {
+  const ProductVariant({
+    required this.id,
+    required this.size,
+    required this.color,
+    required this.label,
+    required this.stock,
+  });
+
+  final int id;
+  final String size;
+  final String color;
+  final String label;
+  final int stock;
+
+  factory ProductVariant.fromJson(Map<String, dynamic> json) => ProductVariant(
+    id: json['id'] as int,
+    size: json['size'] as String,
+    color: json['color'] as String,
+    label: json['label'] as String,
+    stock: json['stock'] as int,
+  );
+
+  bool get available => stock > 0;
+}
+
 class StoreProduct {
   const StoreProduct({
     required this.id,
@@ -13,6 +40,12 @@ class StoreProduct {
     required this.stock,
     this.categoryName,
     this.imageUrl,
+    this.priceCents,
+    this.composition,
+    this.care,
+    this.variants = const [],
+    this.ratingAverage,
+    this.ratingCount = 0,
   });
 
   final int id;
@@ -22,6 +55,14 @@ class StoreProduct {
   final int stock;
   final String? categoryName;
   final String? imageUrl;
+  // Valor exato em centavos, como a API guarda; `price` fica por compatibilidade.
+  final int? priceCents;
+  final String? composition;
+  final String? care;
+  // Vazia quando a peça não tem tamanho/cor; quando existe, a compra exige escolher uma.
+  final List<ProductVariant> variants;
+  final double? ratingAverage;
+  final int ratingCount;
 
   factory StoreProduct.fromJson(Map<String, dynamic> json) => StoreProduct(
     id: json['id'] as int,
@@ -31,12 +72,43 @@ class StoreProduct {
     stock: json['stock'] as int,
     categoryName: json['category_name'] as String?,
     imageUrl: json['image_url'] as String?,
+    priceCents: json['price_cents'] as int?,
+    composition: _text(json['composition']),
+    care: _text(json['care']),
+    variants: (json['variants'] as List? ?? const [])
+        .map((v) => ProductVariant.fromJson(v as Map<String, dynamic>))
+        .toList(),
+    ratingAverage: (json['rating_average'] as num?)?.toDouble(),
+    ratingCount: json['rating_count'] as int? ?? 0,
   );
+
+  static String? _text(Object? value) {
+    final text = (value as String?)?.trim();
+    return text == null || text.isEmpty ? null : text;
+  }
+
+  bool get hasVariants => variants.isNotEmpty;
+
+  /// Peças com tamanho/cor somam o estoque das variações.
+  int get availableStock => hasVariants
+      ? variants.fold(0, (total, v) => total + (v.stock > 0 ? v.stock : 0))
+      : stock;
 
   String get shortDescription => categoryName ?? description ?? 'Seleção Lumen';
 
-  String get formattedPrice =>
-      'R\$ ${price.toStringAsFixed(2).replaceAll('.', ',')}';
+  String get formattedPrice {
+    final cents = priceCents ?? (price * 100).round();
+    final reais = (cents ~/ 100).toString().replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (_) => '.',
+    );
+    return 'R\$ $reais,${(cents % 100).toString().padLeft(2, '0')}';
+  }
+
+  String? get formattedRating => ratingAverage == null || ratingCount == 0
+      ? null
+      : '${ratingAverage!.toStringAsFixed(1).replaceAll('.', ',')} · '
+            '$ratingCount ${ratingCount == 1 ? 'avaliação' : 'avaliações'}';
 }
 
 const lumenDemoProduct = StoreProduct(
