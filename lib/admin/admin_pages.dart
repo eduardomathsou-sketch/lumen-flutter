@@ -5,6 +5,7 @@ import '../checkout/checkout_pages.dart';
 import '../checkout/commerce_api.dart';
 import '../store/catalog_api.dart';
 import 'admin_api.dart';
+import 'admin_variants.dart';
 
 class AdminCatalogPage extends StatefulWidget {
   const AdminCatalogPage({super.key, required this.repository});
@@ -212,6 +213,7 @@ class _AdminProductPageState extends State<AdminProductPage> {
   final _form = GlobalKey<FormState>();
   final _scroll = ScrollController();
   final _name = TextEditingController(), _description = TextEditingController();
+  final _composition = TextEditingController(), _care = TextEditingController();
   final _price = TextEditingController(),
       _stock = TextEditingController(text: '0');
   final _image = TextEditingController();
@@ -239,6 +241,8 @@ class _AdminProductPageState extends State<AdminProductPage> {
     for (final controller in [
       _name,
       _description,
+      _composition,
+      _care,
       _price,
       _stock,
       _image,
@@ -265,6 +269,8 @@ class _AdminProductPageState extends State<AdminProductPage> {
         if (item != null) {
           _name.text = item.name;
           _description.text = item.description ?? '';
+          _composition.text = item.composition ?? '';
+          _care.text = item.care ?? '';
           _price.text =
               '${item.priceCents ~/ 100},${(item.priceCents % 100).toString().padLeft(2, '0')}';
           _stock.text = '${item.stock}';
@@ -329,6 +335,10 @@ class _AdminProductPageState extends State<AdminProductPage> {
       await widget.repository.save({
         'name': _name.text.trim(),
         'description': _description.text.trim(),
+        'composition': _composition.text.trim().isEmpty
+            ? null
+            : _composition.text.trim(),
+        'care': _care.text.trim().isEmpty ? null : _care.text.trim(),
         'price_cents': _cents(_price.text),
         'stock': int.parse(_stock.text),
         'category_id': _categoryId,
@@ -434,6 +444,51 @@ class _AdminProductPageState extends State<AdminProductPage> {
                           labelText: 'Descrição',
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        key: const ValueKey('admin-composition'),
+                        controller: _composition,
+                        enabled: !_saving && !_loading,
+                        maxLength: 200,
+                        decoration: const InputDecoration(
+                          labelText: 'Composição (como na etiqueta)',
+                          hintText: 'Ex.: 100% viscose',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        key: const ValueKey('admin-care'),
+                        controller: _care,
+                        enabled: !_saving && !_loading,
+                        maxLines: 2,
+                        maxLength: 300,
+                        decoration: const InputDecoration(
+                          labelText: 'Cuidados',
+                          hintText: 'Ex.: lavar à mão em água fria',
+                        ),
+                      ),
+                      if (widget.productId != null &&
+                          widget.repository is AdminVariantsRepository)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: OutlinedButton.icon(
+                            key: const ValueKey('admin-variants'),
+                            onPressed: _saving || _loading
+                                ? null
+                                : () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => AdminVariantsPage(
+                                        repository: widget.repository
+                                            as AdminVariantsRepository,
+                                        productId: widget.productId!,
+                                        productName: _name.text.trim(),
+                                      ),
+                                    ),
+                                  ),
+                            icon: const Icon(Icons.straighten),
+                            label: const Text('TAMANHOS E CORES'),
+                          ),
+                        ),
                       const SizedBox(height: 12),
                       TextFormField(
                         key: const ValueKey('admin-price'),

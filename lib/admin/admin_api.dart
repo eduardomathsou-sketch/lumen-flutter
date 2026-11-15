@@ -6,6 +6,8 @@ class AdminProduct {
     : id = data['id'] as int,
       name = data['name'] as String,
       description = data['description'] as String?,
+      composition = data['composition'] as String?,
+      care = data['care'] as String?,
       priceCents = data['price_cents'] as int,
       stock = data['stock'] as int,
       categoryId = data['category_id'] as int?,
@@ -28,7 +30,7 @@ class AdminProduct {
   final int id, priceCents, stock, version;
   final int? categoryId;
   final String name;
-  final String? description, categoryName, imageUrl;
+  final String? description, composition, care, categoryName, imageUrl;
   final bool active;
 }
 
@@ -44,7 +46,27 @@ abstract class AdminRepository {
   Future<StoreCategory> createCategory(String name);
 }
 
-class AdminApi implements AdminRepository {
+/// Tamanho/cor de uma peça, com estoque próprio.
+class AdminVariant {
+  AdminVariant.fromJson(Json data)
+    : id = data['id'] as int,
+      size = data['size'] as String? ?? '',
+      color = data['color'] as String? ?? '',
+      label = data['label'] as String? ?? '',
+      stock = data['stock'] as int,
+      active = data['is_active'] as bool? ?? true,
+      version = data['version'] as int? ?? 0;
+  final int id, stock, version;
+  final String size, color, label;
+  final bool active;
+}
+
+abstract class AdminVariantsRepository {
+  Future<List<AdminVariant>> variants(int productId);
+  Future<AdminVariant> saveVariant(int productId, Json data, {int? id});
+}
+
+class AdminApi implements AdminRepository, AdminVariantsRepository {
   AdminApi(this.api);
   final CommerceApi api;
 
@@ -77,6 +99,20 @@ class AdminApi implements AdminRepository {
         await api.adminRequest(
           id == null ? 'POST' : 'PUT',
           id == null ? '/products' : '/products/$id',
+          body: data,
+        ) as Json,
+      );
+  @override
+  Future<List<AdminVariant>> variants(int productId) async =>
+      (await api.adminRequest('GET', '/products/$productId/variants') as List)
+          .map((v) => AdminVariant.fromJson(v as Json))
+          .toList();
+  @override
+  Future<AdminVariant> saveVariant(int productId, Json data, {int? id}) async =>
+      AdminVariant.fromJson(
+        await api.adminRequest(
+          id == null ? 'POST' : 'PUT',
+          id == null ? '/products/$productId/variants' : '/variants/$id',
           body: data,
         ) as Json,
       );
