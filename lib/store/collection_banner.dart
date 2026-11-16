@@ -132,30 +132,49 @@ class _Slide extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         ColoredBox(color: background),
-        if (image != null)
+        // No computador a foto ocupa a direita inteira (texto à esquerda, sem
+        // cobrir a peça); no celular ela fica em cima e o texto embaixo.
+        if (image != null && wide)
+          FractionallySizedBox(
+            alignment: Alignment.centerRight,
+            widthFactor: .64,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  image!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [background, background.withValues(alpha: 0)],
+                      stops: const [0, .22],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (image != null && !wide) ...[
           Image.asset(
             image!,
             fit: BoxFit.cover,
-            alignment: wide ? Alignment.centerRight : const Alignment(0, -.6),
+            alignment: const Alignment(0, -.6),
             errorBuilder: (_, _, _) => const SizedBox.shrink(),
           ),
-        // No computador o texto fica à esquerda; no celular, embaixo, com a foto à mostra.
-        if (image != null)
-          DecoratedBox(
+          const DecoratedBox(
             decoration: BoxDecoration(
-              gradient: wide
-                  ? const LinearGradient(
-                      colors: [Color(0xF2F5F1EA), Color(0x99F5F1EA), Color(0x00F5F1EA)],
-                      stops: [0, .4, .7],
-                    )
-                  : const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0x00F5F1EA), Color(0xB3F5F1EA), Color(0xF7F5F1EA)],
-                      stops: [.25, .55, .8],
-                    ),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x00F5F1EA), Color(0xB3F5F1EA), Color(0xF7F5F1EA)],
+                stops: [.25, .55, .8],
+              ),
             ),
           ),
+        ],
         Padding(
           padding: EdgeInsets.fromLTRB(wide ? 56 : 24, 28, 24, 44),
           // Com letra grande (acessibilidade) o bloco encolhe em vez de estourar.
