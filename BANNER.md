@@ -1,6 +1,6 @@
 # Banner da coleção Lumen
 
-- Arte: `assets/images/collection-banner.png`, criada com a ferramenta integrada de geração de imagens.
+- Arte: `assets/images/collection-banner.jpg`, criada com a ferramenta integrada de geração de imagens.
 - Referências: as quatro fotos existentes em `web/products` (Vestido Aura, Bolsa Aurora, Bruma Lunar e Óleo Iluminar).
 - Texto e botão são widgets Flutter, permitindo adaptação à tela e ampliação de fontes.
 - Campanha: PAC grátis com 2 unidades ou mais, inclusive repetidas, onde o serviço estiver disponível para o CEP. SEDEX pago. O backend aplica a regra e preserva o custo da transportadora para a loja. A integração Melhor Envio precisa estar configurada para cotar.

@@ -35,7 +35,7 @@ class _HeroCarouselState extends State<HeroCarousel> {
       final slides = [
         _Slide(
           wide: wide,
-          image: 'assets/images/collection-banner.png',
+          image: 'assets/images/collection-banner.jpg',
           label: 'Nova coleção',
           title: 'Vista a sua\nessência.',
           band: 'PEÇAS ESCOLHIDAS PARA ILUMINAR O SEU DIA',

@@ -60,7 +60,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - assets/images/collection-banner.png
+    - assets/images/collection-banner.jpg
 
   # Fontes livres (SIL Open Font License 1.1; licenças em assets/fonts/*-OFL.txt):
   # Montserrat no texto e Bodoni Moda nos títulos e preços.
