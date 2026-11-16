@@ -134,10 +134,13 @@ class StoreProduct {
   };
 
   /// Tamanhos à venda, na ordem cadastrada (sem repetir).
-  List<String> get sizes => [
-    for (final v in variants)
-      if (v.stock > 0 && v.size.isNotEmpty) v.size,
-  ].toSet().toList();
+  List<String> get sizes {
+    final seen = <String>{};
+    return [
+      for (final v in variants)
+        if (v.stock > 0 && v.size.isNotEmpty && seen.add(v.size)) v.size,
+    ];
+  }
 
   String? get formattedRating => ratingAverage == null || ratingCount == 0
       ? null
