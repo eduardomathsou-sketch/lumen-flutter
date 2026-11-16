@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../form_list_view.dart';
 import '../checkout/checkout_pages.dart' show RetryNotice, errorText;
 import '../checkout/commerce_api.dart';
 
@@ -286,7 +287,7 @@ class _CouponFormPageState extends State<CouponFormPage> {
           constraints: const BoxConstraints(maxWidth: 560),
           child: Form(
             key: _form,
-            child: ListView(
+            child: FormListView(
               padding: const EdgeInsets.all(20),
               children: [
                 TextFormField(

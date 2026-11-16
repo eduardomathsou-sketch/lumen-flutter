@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../form_list_view.dart';
 import '../checkout/checkout_pages.dart' show RetryNotice, errorText;
 import '../checkout/commerce_api.dart';
 import 'account_controller.dart';
@@ -237,7 +238,7 @@ class _AddressFormPageState extends State<AddressFormPage> {
           constraints: const BoxConstraints(maxWidth: 560),
           child: Form(
             key: _form,
-            child: ListView(
+            child: FormListView(
               padding: const EdgeInsets.all(20),
               children: [
                 _field('label', 'Nome do endereço (ex.: Casa, Trabalho)',

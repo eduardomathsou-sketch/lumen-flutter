@@ -1,0 +1,34 @@
+name: Manutenção da loja
+# Chama a rotina da API que confere PIX pendentes, cancela pedidos vencidos (devolvendo
+# o estoque reservado), envia a fila de e-mails e limpa o que expirou.
+# O GitHub só agenda a partir da branch padrão (main) e pode atrasar alguns minutos.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: lumen-maintenance
+  cancel-in-progress: false
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Rodar a manutenção da API
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          API_URL: https://lumen-api-wine.vercel.app
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::notice::Cadastre o segredo CRON_SECRET (o mesmo da Vercel) para ligar a manutenção."
+            exit 0
+          fi
+          status=$(curl -sS -o body.json -w '%{http_code}' --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" "$API_URL/api/internal/maintenance" || echo 000)
+          echo "HTTP $status"
+          head -c 300 body.json 2>/dev/null; echo
+          if [ "$status" != "200" ]; then
+            echo "::error::A manutenção respondeu HTTP $status; pedidos pendentes serão tentados de novo na próxima execução."
+            exit 1
+          fi
