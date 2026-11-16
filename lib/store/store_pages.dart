@@ -443,9 +443,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       Text(
                         product.formattedPrice,
                         style: const TextStyle(
-                          fontFamily: 'serif',
+                          fontFamily: 'Playfair',
                           fontSize: 32,
                           fontWeight: FontWeight.w600,
+                          fontVariations: [FontVariation.weight(600)],
                           height: 1.15,
                         ),
                       ),

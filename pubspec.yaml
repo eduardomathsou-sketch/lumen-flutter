@@ -62,6 +62,13 @@ flutter:
   assets:
     - assets/images/collection-banner.png
 
+  # Playfair Display (SIL Open Font License 1.1, ver assets/fonts/PlayfairDisplay-OFL.txt):
+  # serifa dos preços e títulos da vitrine.
+  fonts:
+    - family: Playfair
+      fonts:
+        - asset: assets/fonts/PlayfairDisplay.ttf
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

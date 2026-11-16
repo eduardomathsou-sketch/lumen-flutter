@@ -151,10 +151,11 @@ class ShopProductCard extends StatelessWidget {
                   Text(
                     product.formattedPrice,
                     style: const TextStyle(
-                      fontFamily: 'serif',
+                      fontFamily: 'Playfair',
                       color: _ink,
                       fontSize: 26,
                       fontWeight: FontWeight.w600,
+                      fontVariations: [FontVariation.weight(600)],
                       height: 1.15,
                     ),
                   ),
@@ -275,7 +276,7 @@ class ShowcaseHeader extends StatelessWidget {
             child: Text(
               title,
               style: const TextStyle(
-                fontFamily: 'serif',
+                fontFamily: 'Playfair',
                 color: _paper,
                 fontSize: 28,
                 height: 1.1,

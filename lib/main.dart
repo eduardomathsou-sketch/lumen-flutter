@@ -832,7 +832,7 @@ class LumenMark extends StatelessWidget {
           child: Text(
             'L',
             style: TextStyle(
-              fontFamily: 'serif',
+              fontFamily: 'Playfair',
               color: LumenColors.goldLight,
               height: .88,
               fontSize: size * .99,
