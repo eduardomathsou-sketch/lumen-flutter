@@ -69,7 +69,13 @@ abstract class AdminVariantsRepository {
   Future<AdminVariant> saveVariant(int productId, Json data, {int? id});
 }
 
-class AdminApi implements AdminRepository, AdminVariantsRepository {
+/// Envio de fotos de produto (a API devolve o endereço público da foto).
+abstract class AdminMediaRepository {
+  Future<String> uploadPhoto(List<int> bytes, String contentType);
+}
+
+class AdminApi
+    implements AdminRepository, AdminVariantsRepository, AdminMediaRepository {
   AdminApi(this.api);
   final CommerceApi api;
 
@@ -119,6 +125,12 @@ class AdminApi implements AdminRepository, AdminVariantsRepository {
           body: data,
         ) as Json,
       );
+  @override
+  Future<String> uploadPhoto(List<int> bytes, String contentType) async {
+    final data = await api.adminUpload('/media', bytes, contentType) as Json;
+    return data['url'] as String;
+  }
+
   @override
   Future<List<StoreCategory>> categories() async =>
       (await api.adminRequest('GET', '/categories') as List)

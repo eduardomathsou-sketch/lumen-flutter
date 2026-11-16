@@ -6,6 +6,7 @@ import '../checkout/commerce_api.dart';
 import '../store/catalog_api.dart';
 import 'admin_api.dart';
 import 'admin_variants.dart';
+import 'photo_picker.dart';
 
 class AdminCatalogPage extends StatefulWidget {
   const AdminCatalogPage({super.key, required this.repository});
@@ -202,9 +203,17 @@ class _AdminCatalogPageState extends State<AdminCatalogPage> {
 }
 
 class AdminProductPage extends StatefulWidget {
-  const AdminProductPage({super.key, required this.repository, this.productId});
+  const AdminProductPage({
+    super.key,
+    required this.repository,
+    this.productId,
+    this.photoPicker,
+  });
   final AdminRepository repository;
   final int? productId;
+
+  /// Seletor de foto; por padrão o do navegador (some onde não há seletor).
+  final PhotoPicker? photoPicker;
   @override
   State<AdminProductPage> createState() => _AdminProductPageState();
 }
@@ -229,8 +238,47 @@ class _AdminProductPageState extends State<AdminProductPage> {
       _loading = true,
       _saving = false,
       _conflict = false,
-      _loaded = false;
-  String? _error, _preview;
+      _loaded = false,
+      _uploading = false;
+  String? _error, _preview, _photoError;
+
+  PhotoPicker? get _picker =>
+      widget.repository is AdminMediaRepository
+          ? widget.photoPicker ?? (photoPickerSupported ? pickPhoto : null)
+          : null;
+
+  Future<void> _sendPhoto() async {
+    final picker = _picker;
+    if (picker == null) return;
+    setState(() => _photoError = null);
+    try {
+      final photo = await picker();
+      if (photo == null || !mounted) return;
+      setState(() => _uploading = true);
+      final url = await (widget.repository as AdminMediaRepository).uploadPhoto(
+        photo.bytes,
+        photo.contentType,
+      );
+      if (!mounted) return;
+      setState(() {
+        _image.text = url;
+        _preview = url;
+      });
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Foto enviada. Salve o produto para publicar.'),
+          ),
+        );
+    } on PhotoPickException catch (error) {
+      if (mounted) setState(() => _photoError = error.message);
+    } on CommerceException catch (error) {
+      if (mounted) setState(() => _photoError = error.message);
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
   @override
   void initState() {
     super.initState();
@@ -633,6 +681,39 @@ class _AdminProductPageState extends State<AdminProductPage> {
                         ],
                       ),
                       const SizedBox(height: 24),
+                      if (_picker != null) ...[
+                        OutlinedButton.icon(
+                          key: const ValueKey('admin-photo-upload'),
+                          onPressed: _saving || _loading || _uploading
+                              ? null
+                              : _sendPhoto,
+                          icon: _uploading
+                              ? const SizedBox.square(
+                                  dimension: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.upload_outlined),
+                          label: Text(
+                            _uploading
+                                ? 'ENVIANDO FOTO...'
+                                : 'ENVIAR FOTO DO COMPUTADOR',
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _photoError ??
+                              'JPG, PNG ou WebP. A loja ajusta o tamanho e tira a localização gravada na foto.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _photoError == null
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
+                                : Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       TextFormField(
                         key: const ValueKey('admin-image'),
                         controller: _image,
@@ -641,7 +722,7 @@ class _AdminProductPageState extends State<AdminProductPage> {
                         maxLength: 2048,
                         decoration: const InputDecoration(
                           labelText: 'Link da foto (HTTPS)',
-                          helperText: 'Use o endereço público da imagem. Deixe vazio para remover.',
+                          helperText: 'Preenchido ao enviar a foto, ou cole o endereço público de uma imagem. Deixe vazio para remover.',
                           helperMaxLines: 2,
                         ),
                         validator: _imageError,
