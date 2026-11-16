@@ -169,11 +169,13 @@ class ShopProductCard extends StatelessWidget {
                             children: [
                               Text(
                                 product.formattedCompareAt ?? ' ',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Lumen.faint,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  decoration: TextDecoration.lineThrough,
+                                  decoration: product.hasDiscount
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
                                 ),
                               ),
                               FittedBox(
