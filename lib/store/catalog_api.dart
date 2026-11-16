@@ -118,7 +118,7 @@ const lumenDemoProduct = StoreProduct(
   price: 9.90,
   stock: 12,
   categoryName: 'Coleção Vista sua essência',
-  imageUrl: 'https://lumen-flutter-blond.vercel.app/products/vestido-aura.png',
+  imageUrl: 'https://lumen-store-omega.vercel.app/products/vestido-aura.png',
 );
 
 class StoreCategory {
