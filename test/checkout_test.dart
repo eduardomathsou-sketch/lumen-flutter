@@ -302,6 +302,26 @@ void main() {
     expect(repo.checkouts, 0);
   });
 
+  testWidgets('an invalid CPF above the screen still blocks the order', (
+    tester,
+  ) async {
+    final repo = FakeCommerce();
+    await tester.pumpWidget(MaterialApp(home: CheckoutPage(repository: repo)));
+    await tester.pumpAndSettle();
+    await fillCheckout(tester);
+    // fillCheckout termina lá embaixo, no botão; o CPF ficou fora da tela.
+    tester
+            .widget<TextFormField>(find.byKey(const ValueKey('document')))
+            .controller!
+            .text =
+        '11111111111';
+    await tester.tap(find.text('CONFIRMAR E GERAR PIX'));
+    await tester.pumpAndSettle();
+    expect(repo.checkouts, 0);
+    expect(find.text('Confira o CPF ou CNPJ.'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('live PIX keeps copy code available when QR image is invalid', (
     tester,
   ) async {

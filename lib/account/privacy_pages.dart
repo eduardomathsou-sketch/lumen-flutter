@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../form_list_view.dart';
 import '../checkout/checkout_pages.dart' show errorText;
 import 'account_controller.dart';
 import 'legal_pages.dart';
@@ -67,7 +68,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           constraints: const BoxConstraints(maxWidth: 520),
           child: Form(
             key: _form,
-            child: ListView(
+            child: FormListView(
               padding: const EdgeInsets.all(24),
               children: [
                 Text(

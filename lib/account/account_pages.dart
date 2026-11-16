@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../form_list_view.dart';
 import '../checkout/checkout_pages.dart';
 import '../admin/admin_api.dart';
 import '../admin/admin_coupons.dart';
@@ -455,7 +456,7 @@ class _AuthPageState extends State<AuthPage> {
           child: Form(
             key: _form,
             child: AutofillGroup(
-              child: ListView(
+              child: FormListView(
                 padding: const EdgeInsets.all(24),
                 children: [
                   const Icon(

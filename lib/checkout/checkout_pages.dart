@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../form_list_view.dart';
 import 'commerce_api.dart';
 import 'order_delivery.dart';
 import '../store/reviews.dart';
@@ -769,7 +770,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       child: SafeArea(
         child: Form(
           key: _form,
-          child: ListView(
+          child: FormListView(
             padding: const EdgeInsets.all(20),
             children: [
               if (_busy) const LinearProgressIndicator(),
