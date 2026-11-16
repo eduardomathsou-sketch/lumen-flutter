@@ -268,6 +268,8 @@ class CommerceApi implements CommerceRepository, OrderReturns, ReviewWriter {
     String method,
     String path, {
     Json? body,
+    List<int>? bytes,
+    String? contentType,
     String? key,
     bool authenticated = true,
     String? guestToken,
@@ -280,7 +282,7 @@ class CommerceApi implements CommerceRepository, OrderReturns, ReviewWriter {
       final request = http.Request(method, Uri.parse('$_baseUrl$path'));
       request.headers.addAll({
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        'Content-Type': contentType ?? 'application/json',
         if (authenticated && _accountToken != null)
           'Authorization': 'Bearer $_accountToken',
         if (authenticated && _accountToken == null) 'X-Cart-Token': _token!,
@@ -288,6 +290,7 @@ class CommerceApi implements CommerceRepository, OrderReturns, ReviewWriter {
         'Idempotency-Key': ?key,
       });
       if (body != null) request.body = jsonEncode(body);
+      if (bytes != null) request.bodyBytes = bytes;
       final response = await (() async => http.Response.fromStream(
         await _client.send(request),
       ))().timeout(const Duration(seconds: 35));
@@ -413,6 +416,10 @@ class CommerceApi implements CommerceRepository, OrderReturns, ReviewWriter {
 
   Future<dynamic> adminRequest(String method, String path, {Json? body}) =>
       _send(method, '/admin$path', body: body);
+
+  /// Envia um arquivo (foto) para uma rota da administração.
+  Future<dynamic> adminUpload(String path, List<int> bytes, String contentType) =>
+      _send('POST', '/admin$path', bytes: bytes, contentType: contentType);
 
   @override
   Future<CartSnapshot> cart() async =>
