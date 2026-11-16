@@ -75,6 +75,7 @@ class FakeCommerce implements CommerceRepository {
   bool failFirst = false;
   bool sandbox = true;
   int checkouts = 0;
+  int? lastVariantId;
   final keys = <String>[];
   final requests = <Json>[];
   @override
@@ -83,14 +84,16 @@ class FakeCommerce implements CommerceRepository {
   Future<CartSnapshot> setQuantity(
     int productId,
     int quantity,
-    int version,
-  ) async {
+    int version, {
+    int? variantId,
+  }) async {
+    lastVariantId = variantId;
     data = cartJson(quantity: quantity, version: version + 1);
     return cart();
   }
 
   @override
-  Future<CheckoutQuote> quote({String? postalCode}) async =>
+  Future<CheckoutQuote> quote({String? postalCode, String? coupon}) async =>
       CheckoutQuote.fromJson({
         ...data,
         'shipping_cents': 1500,
@@ -376,5 +379,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Pedido cancelado'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('saved addresses fill the checkout form', (tester) async {
+    // Tela alta: todos os campos da lista ficam montados ao mesmo tempo.
+    tester.view.physicalSize = const Size(800, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repo = FakeCommerce();
+    Json address(int id, String label, String street, {bool standard = false}) => {
+      'id': id,
+      'label': label,
+      'is_default': standard,
+      'recipient': 'Ana Lima',
+      'postal_code': '59015000',
+      'street': street,
+      'number': '$id',
+      'complement': '',
+      'district': 'Tirol',
+      'city': 'Natal',
+      'state': 'RN',
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CheckoutPage(
+          repository: repo,
+          email: 'ana@example.com',
+          savedAddresses: () async => [
+            address(1, 'Trabalho', 'Av. Prudente'),
+            address(2, 'Casa', 'Rua das Flores', standard: true),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    String text(String key) =>
+        tester.widget<TextFormField>(find.byKey(ValueKey(key))).controller!.text;
+    expect(text('email'), 'ana@example.com');
+    expect(text('street'), 'Rua das Flores');
+
+    await tester.tap(find.byKey(const ValueKey('saved-address-1')));
+    await tester.pumpAndSettle();
+    expect(text('street'), 'Av. Prudente');
+    expect(text('number'), '1');
   });
 }

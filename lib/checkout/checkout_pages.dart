@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'commerce_api.dart';
+import 'order_delivery.dart';
+import '../store/reviews.dart';
 import '../store/store_layout.dart';
 
 String errorText(Object error) => error is CommerceException
@@ -30,9 +32,19 @@ class RetryNotice extends StatelessWidget {
   );
 }
 
+/// Endereços salvos da conta logada (null quando é compra sem login).
+typedef SavedAddresses = Future<List<Json>> Function();
+
 class BagPage extends StatefulWidget {
-  const BagPage({super.key, required this.repository});
+  const BagPage({
+    super.key,
+    required this.repository,
+    this.savedAddresses,
+    this.email,
+  });
   final CommerceRepository repository;
+  final SavedAddresses? savedAddresses;
+  final String? email;
   @override
   State<BagPage> createState() => _BagPageState();
 }
@@ -73,6 +85,7 @@ class _BagPageState extends State<BagPage> {
         line.productId,
         quantity,
         _cart!.version,
+        variantId: line.variantId,
       );
       if (mounted) setState(() => _cart = cart);
     } catch (e) {
@@ -241,7 +254,8 @@ class _BagPageState extends State<BagPage> {
                               onPressed:
                                   _busy ||
                                       cart.activeOrderId != null ||
-                                      line.quantity >= line.stock
+                                      line.quantity >= line.stock ||
+                                      line.quantity >= maxUnitsPerItem
                                   ? null
                                   : () => _change(line, line.quantity + 1),
                               icon: const Icon(Icons.add),
@@ -333,7 +347,13 @@ class _BagPageState extends State<BagPage> {
                     cart.activeOrderId != null ||
                     cart.items.any((x) => !x.available || x.stock < x.quantity)
                 ? null
-                : () => _open(CheckoutPage(repository: widget.repository)),
+                : () => _open(
+                    CheckoutPage(
+                      repository: widget.repository,
+                      savedAddresses: widget.savedAddresses,
+                      email: widget.email,
+                    ),
+                  ),
             child: const Text('CONTINUAR COMPRA', textAlign: TextAlign.center),
           ),
         ],
@@ -377,6 +397,11 @@ class _BagProductHeading extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(line.name, style: Theme.of(context).textTheme.titleMedium),
+          if (line.variantLabel != null)
+            Text(
+              line.variantLabel!,
+              style: const TextStyle(color: Color(0xFF756C62)),
+            ),
           const SizedBox(height: 6),
           Text('${money(line.unitPriceCents)} por unidade'),
         ],
@@ -398,9 +423,19 @@ class _BagProductHeading extends StatelessWidget {
   );
 }
 
+/// Sentinela: "_loadQuote sem mudar o cupom".
+const _keep = Object();
+
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({super.key, required this.repository});
+  const CheckoutPage({
+    super.key,
+    required this.repository,
+    this.savedAddresses,
+    this.email,
+  });
   final CommerceRepository repository;
+  final SavedAddresses? savedAddresses;
+  final String? email;
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
 }
@@ -440,16 +475,64 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   int get _totalCents => _quote!.shippingRequired
-      ? _quote!.cart.subtotalCents + (_shipping?.priceCents ?? 0)
+      ? _quote!.cart.subtotalCents -
+            _quote!.discountCents +
+            (_shipping?.priceCents ?? 0)
       : _quote!.totalCents;
   String? _error;
   bool _busy = false;
+  // Cupom aceito pela API; só entra no pedido depois de validado na cotação.
+  String? _coupon;
+  bool _couponOpen = false;
+  final _couponField = TextEditingController();
+  // Endereços da conta: tocar num deles só preenche o formulário (a API valida tudo de novo).
+  List<Json> _saved = [];
+  int? _savedId;
   @override
   void initState() {
     super.initState();
+    _fields['email']!.text = widget.email ?? '';
     _newKey();
     _loadQuote();
+    _loadSaved();
   }
+
+  Future<void> _loadSaved() async {
+    final load = widget.savedAddresses;
+    if (load == null) return;
+    try {
+      final items = await load();
+      if (!mounted || items.isEmpty) return;
+      setState(() => _saved = items);
+      final standard = items.firstWhere(
+        (a) => a['is_default'] == true,
+        orElse: () => items.first,
+      );
+      if (value('postal_code').isEmpty && value('street').isEmpty) {
+        _useSaved(standard);
+      }
+    } catch (_) {
+      // Sem a lista, a cliente digita o endereço normalmente.
+    }
+  }
+
+  void _useSaved(Json address) => setState(() {
+    for (final key in [
+      'recipient',
+      'postal_code',
+      'street',
+      'number',
+      'complement',
+      'district',
+      'city',
+      'state',
+    ]) {
+      _fields[key]!.text = address[key] as String? ?? '';
+    }
+    _savedId = address['id'] as int?;
+    _ratesCurrent = false;
+    _shippingServiceId = null;
+  });
 
   void _newKey() => _key = List.generate(
     24,
@@ -460,16 +543,41 @@ class _CheckoutPageState extends State<CheckoutPage> {
     for (final c in _fields.values) {
       c.dispose();
     }
+    _couponField.dispose();
     super.dispose();
   }
 
-  Future<void> _loadQuote({bool calculate = false}) async {
+  Future<void> _applyCoupon({bool remove = false}) async {
+    final code = _couponField.text.trim().toUpperCase();
+    if (!remove && !RegExp(r'^[A-Z0-9_-]{3,30}$').hasMatch(code)) {
+      setState(() => _error = 'Digite o código do cupom (letras e números).');
+      return;
+    }
+    final previous = _coupon;
+    final ok = await _loadQuote(
+      calculate: _ratesCurrent,
+      coupon: remove ? null : code,
+    );
+    if (!mounted) return;
+    setState(() {
+      if (ok) {
+        _coupon = remove ? null : _quote?.couponCode;
+        if (remove) _couponField.clear();
+      } else {
+        _coupon = previous;
+      }
+    });
+  }
+
+  /// Atualiza a cotação. Devolve false quando a API recusou (ex.: cupom inválido).
+  Future<bool> _loadQuote({bool calculate = false, Object? coupon = _keep}) async {
+    final code = identical(coupon, _keep) ? _coupon : coupon as String?;
     final postalCode = value('postal_code').replaceAll(RegExp(r'\D'), '');
     if (calculate && !RegExp(r'^\d{8}$').hasMatch(postalCode)) {
       setState(
         () => _error = 'Informe os 8 números do CEP para calcular a entrega.',
       );
-      return;
+      return false;
     }
     setState(() {
       _busy = true;
@@ -480,6 +588,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     try {
       final quote = await widget.repository.quote(
         postalCode: calculate ? postalCode : null,
+        coupon: code,
       );
       if (mounted) {
         setState(() {
@@ -487,8 +596,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
           _ratesCurrent = calculate;
         });
       }
+      return true;
     } catch (e) {
       if (mounted) setState(() => _error = errorText(e));
+      return false;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -512,6 +623,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         'shipping_quote_id': _quote!.shippingQuoteId,
         'shipping_service_id': _shipping!.id,
       },
+      'coupon_code': ?_coupon,
       'payer_email': value('email'),
       'payer_document': value('document').replaceAll(RegExp(r'\D'), ''),
       'address': {
@@ -562,7 +674,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             );
             return;
           }
-          final quote = await widget.repository.quote();
+          final quote = await widget.repository.quote(coupon: _coupon);
           if (mounted) setState(() => _quote = quote);
         } catch (_) {
           /* Keep the original error and allow a fresh review. */
@@ -681,6 +793,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
+                if (_saved.isNotEmpty) ...[
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final address in _saved)
+                        ChoiceChip(
+                          key: ValueKey('saved-address-${address['id']}'),
+                          label: Text(address['label'] as String? ?? 'Endereço'),
+                          selected: _savedId == address['id'],
+                          onSelected: _busy || _attempt != null
+                              ? null
+                              : (_) => _useSaved(address),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 field('recipient', 'Nome de quem recebe'),
                 field('postal_code', 'CEP', keyboard: TextInputType.number),
                 field('street', 'Rua'),
@@ -692,7 +822,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 const Divider(),
                 for (final line in _quote!.cart.items)
                   Text(
-                    '${line.quantity} × ${line.name} — ${money(line.totalCents)}',
+                    '${line.quantity} × ${line.displayName} — ${money(line.totalCents)}',
                   ),
                 const SizedBox(height: 12),
                 if (_quote!.shippingRequired) ...[
@@ -749,6 +879,60 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     'Prazo estimado: ${_quote!.shippingDays} dias úteis após aprovação.',
                   ),
                 ],
+                const SizedBox(height: 12),
+                if (_coupon != null)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Cupom $_coupon: − ${money(_quote!.discountCents)}',
+                          key: const ValueKey('coupon-applied'),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _busy || _attempt != null
+                            ? null
+                            : () => _applyCoupon(remove: true),
+                        child: const Text('REMOVER'),
+                      ),
+                    ],
+                  )
+                else if (!_couponOpen)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: _busy || _attempt != null
+                          ? null
+                          : () => setState(() => _couponOpen = true),
+                      child: const Text('Tem um cupom?'),
+                    ),
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          key: const ValueKey('coupon'),
+                          controller: _couponField,
+                          enabled: !_busy && _attempt == null,
+                          maxLength: 30,
+                          textCapitalization: TextCapitalization.characters,
+                          onSubmitted: (_) => _applyCoupon(),
+                          decoration: const InputDecoration(
+                            labelText: 'Código do cupom',
+                            counterText: '',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: _busy || _attempt != null
+                            ? null
+                            : () => _applyCoupon(),
+                        child: const Text('APLICAR'),
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 12),
                 Text(
                   '${_quote!.shippingRequired && _shipping == null ? 'Produtos (frete a calcular)' : 'Total'}: ${money(_totalCents)}',
@@ -849,7 +1033,9 @@ class _OrdersPageState extends State<OrdersPage> {
                 title: Text(
                   'Pedido ${order.id.substring(0, 8)} — ${money(order.totalCents)}',
                 ),
-                subtitle: Text(order.statusLabel),
+                subtitle: Text(
+                  '${order.progressLabel} · ${shortDate(order.createdAt)}',
+                ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () async {
                   await Navigator.of(context).push(
@@ -998,6 +1184,10 @@ class _OrderPageState extends State<OrderPage> with WidgetsBindingObserver {
                 Text(
                   '${item['quantity']} × ${item['name']} — ${money((item['unit_price_cents'] as int) * (item['quantity'] as int))}',
                 ),
+              if (order.discountCents > 0)
+                Text(
+                  'Cupom ${order.couponCode ?? ''}: − ${money(order.discountCents)}',
+                ),
               Text('${order.shippingLabel}: ${money(order.shippingCents)}'),
               Text(
                 'Total: ${money(order.totalCents)}',
@@ -1080,10 +1270,24 @@ class _OrderPageState extends State<OrderPage> with WidgetsBindingObserver {
                   child: const Text('CANCELAR PEDIDO'),
                 ),
               ] else ...[
-                if (order.paid)
+                if (order.paid) ...[
                   const Text(
                     'Recebemos seu pagamento. Seu pedido está confirmado.',
                   ),
+                  const SizedBox(height: 12),
+                  DeliveryProgress(order),
+                  if (order.delivered && widget.repository is ReviewWriter)
+                    ReviewItems(
+                      items: order.items,
+                      writer: widget.repository as ReviewWriter,
+                    ),
+                  if (order.delivered && widget.repository is OrderReturns)
+                    ReturnSection(
+                      order: order,
+                      returns: widget.repository as OrderReturns,
+                    ),
+                  const SizedBox(height: 12),
+                ],
                 FilledButton(
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text('VOLTAR'),

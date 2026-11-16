@@ -145,6 +145,64 @@ class AccountController extends ChangeNotifier {
     _changed();
   }
 
+  // --- Endereços salvos (até 10 por conta) ---
+  Future<List<Json>> addresses() async =>
+      (await api.accountRequest('GET', '/users/me/addresses') as List).cast<Json>();
+
+  Future<Json> saveAddress(Json data, {int? id}) async =>
+      await api.accountRequest(
+            id == null ? 'POST' : 'PUT',
+            id == null ? '/users/me/addresses' : '/users/me/addresses/$id',
+            body: data,
+          )
+          as Json;
+
+  Future<void> deleteAddress(int id) async {
+    await api.accountRequest('DELETE', '/users/me/addresses/$id');
+  }
+
+  // --- Meus dados e privacidade (LGPD) ---
+  Future<void> updateProfile({String? fullName, String? phone}) async {
+    user =
+        await api.accountRequest(
+              'PUT',
+              '/users/me',
+              body: {'full_name': fullName, 'phone': phone},
+            )
+            as Json;
+    _changed();
+  }
+
+  Future<void> setMarketing(bool enabled) async {
+    user =
+        await api.accountRequest(
+              'PUT',
+              '/users/me/consents',
+              body: {'marketing_opt_in': enabled},
+            )
+            as Json;
+    _changed();
+  }
+
+  /// Cópia completa dos dados da conta (pede a senha de novo).
+  Future<Json> exportData(String password) async =>
+      await api.accountRequest(
+            'POST',
+            '/users/me/data-export',
+            body: {'password': password},
+          )
+          as Json;
+
+  /// Exclui a conta na API e limpa este aparelho.
+  Future<void> deleteAccount(String password) async {
+    await api.accountRequest(
+      'POST',
+      '/users/me/delete',
+      body: {'password': password},
+    );
+    await sessionEnded();
+  }
+
   /// Sessão vencida ou encerrada em outro aparelho: limpa a conta deste aparelho.
   Future<void> sessionEnded() async {
     await api.clearAccount();

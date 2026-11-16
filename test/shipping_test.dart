@@ -9,7 +9,7 @@ class ShippingCommerce extends FakeCommerce {
   final destinations = <String>[];
   bool unavailable = false;
   @override
-  Future<CheckoutQuote> quote({String? postalCode}) async {
+  Future<CheckoutQuote> quote({String? postalCode, String? coupon}) async {
     if (postalCode != null) {
       destinations.add(postalCode);
       if (unavailable) {

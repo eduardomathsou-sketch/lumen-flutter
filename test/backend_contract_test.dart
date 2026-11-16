@@ -43,7 +43,25 @@ void main() {
       final products = jsonDecode(
         (await client.get(Uri.parse('$base/products'))).body,
       ) as List;
-      final product = products.first as Json;
+      bool sized(Object? p) => ((p as Json)['variants'] as List? ?? []).isNotEmpty;
+      // Peça vendida por tamanho: a variação escolhida vai para a sacola e sai dela.
+      final dress = products.firstWhere(sized) as Json;
+      final size = (dress['variants'] as List).first as Json;
+      var bag = await api.setQuantity(
+        dress['id'] as int,
+        1,
+        cart.version,
+        variantId: size['id'] as int,
+      );
+      expect(bag.items.single.variantId, size['id']);
+      bag = await api.setQuantity(
+        dress['id'] as int,
+        0,
+        bag.version,
+        variantId: size['id'] as int,
+      );
+      expect(bag.items, isEmpty);
+      final product = products.firstWhere((p) => !sized(p)) as Json;
       final originalStock = product['stock'] as int;
       Future<int> stock() async {
         final response = await client.get(
@@ -53,7 +71,7 @@ void main() {
         return (jsonDecode(response.body) as Json)['stock'] as int;
       }
 
-      await api.setQuantity(product['id'] as int, 2, cart.version);
+      await api.setQuantity(product['id'] as int, 2, bag.version);
       final quote = await api.quote();
       final order = await api.checkout({
         'cart_version': quote.cart.version,

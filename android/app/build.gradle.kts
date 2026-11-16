@@ -15,8 +15,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.lumen_store"
+        // Identidade do app no Android (o pacote do código continua em com.example.lumen_store).
+        applicationId = "br.com.lumenstore.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -31,8 +31,8 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // APK de TESTE: assinado com a chave de depuração. Antes de publicar na Play Store,
+            // criar uma chave própria (keystore fora do repositório) e trocar aqui.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

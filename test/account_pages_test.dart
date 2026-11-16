@@ -176,7 +176,12 @@ void main() {
       addTearDown(resumed.dispose);
       await resumed.initialize();
       expect(resumed.user!['email'], 'cliente@example.com');
-      await tester.ensureVisible(find.text('SAIR DA CONTA'));
+      await tester.scrollUntilVisible(
+        find.text('SAIR DA CONTA'),
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('SAIR DA CONTA'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('SAIR'));

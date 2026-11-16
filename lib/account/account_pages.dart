@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../checkout/checkout_pages.dart';
 import '../admin/admin_api.dart';
+import '../admin/admin_coupons.dart';
+import '../admin/admin_orders.dart';
 import '../admin/admin_pages.dart';
 import 'account_controller.dart';
+import 'address_pages.dart';
 import 'legal_pages.dart';
 import 'password_pages.dart';
+import 'privacy_pages.dart';
 import 'security_pages.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -155,25 +159,6 @@ class ProfilePage extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 12),
-          Card(
-            margin: EdgeInsets.zero,
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 8,
-              ),
-              leading: const Icon(Icons.lock_outline),
-              title: const Text('Segurança'),
-              subtitle: const Text('Senha e aparelhos conectados'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => SecurityPage(account: account),
-                ),
-              ),
-            ),
-          ),
           if (account.isAdmin) ...[
             const SizedBox(height: 12),
             Card(
@@ -198,7 +183,125 @@ class ProfilePage extends StatelessWidget {
                 },
               ),
             ),
+            const SizedBox(height: 12),
+            Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
+                leading: const Icon(Icons.receipt_long_outlined),
+                title: const Text('Pedidos da loja'),
+                subtitle: const Text('Pagamento, envio e entrega'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => AdminOrdersPage(
+                      repository: AdminOrdersApi(account.api),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
+                leading: const Icon(Icons.local_offer_outlined),
+                title: const Text('Cupons'),
+                subtitle: const Text('Criar, pausar e acompanhar o uso'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => AdminCouponsPage(
+                      repository: AdminCouponsApi(account.api),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
+          const SizedBox(height: 12),
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+              leading: const Icon(Icons.lock_outline),
+              title: const Text('Segurança'),
+              subtitle: const Text('Senha e aparelhos conectados'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => SecurityPage(account: account),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+              leading: const Icon(Icons.location_on_outlined),
+              title: const Text('Meus endereços'),
+              subtitle: const Text('Para escolher no checkout'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => AddressesPage(account: account),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+              leading: const Icon(Icons.person_outline),
+              title: const Text('Meus dados'),
+              subtitle: const Text('Nome e celular'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => ProfileEditPage(account: account),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: const Text('Privacidade'),
+              subtitle: const Text('Comunicações, cópia dos dados e exclusão da conta'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => PrivacyPage(account: account),
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
           const Text(
             'Sua sessão dura até 7 dias. Ao sair, seus pedidos e favoritos continuam salvos na conta.',

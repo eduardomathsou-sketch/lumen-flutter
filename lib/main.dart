@@ -307,7 +307,8 @@ class _LumenHomeState extends State<LumenHome> {
           productId: product.id,
           repository: widget.productsRepository,
           account: _account,
-          onAdd: (p, q) => _addToBag(p, count: q, propagate: true),
+          onAdd: (p, q, v) =>
+              _addToBag(p, count: q, variant: v, propagate: true),
           onBag: _openBag,
         ),
       ),
@@ -327,9 +328,15 @@ class _LumenHomeState extends State<LumenHome> {
   Future<void> _addToBag(
     StoreProduct product, {
     int count = 1,
+    ProductVariant? variant,
     bool propagate = false,
   }) async {
     if (_cartBusy) return;
+    if (product.hasVariants && variant == null) {
+      // Peça com tamanho/cor: a escolha acontece na página do produto.
+      await _openProduct(product);
+      return;
+    }
     if (product.id <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -343,17 +350,21 @@ class _LumenHomeState extends State<LumenHome> {
     setState(() => _cartBusy = true);
     try {
       final cart = await widget.commerceRepository.cart();
-      final current = cart.items.where((line) => line.productId == product.id);
+      final current = cart.items.where(
+        (line) => line.productId == product.id && line.variantId == variant?.id,
+      );
       final quantity = current.isEmpty ? count : current.first.quantity + count;
       final updated = await widget.commerceRepository.setQuantity(
         product.id,
         quantity,
         cart.version,
+        variantId: variant?.id,
       );
       if (!mounted) return;
       setState(() => _cart = updated);
+      final name = variant == null ? product.name : '${product.name} (${variant.label})';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${product.name} adicionado à sua sacola.')),
+        SnackBar(content: Text('$name adicionado à sua sacola.')),
       );
     } catch (e) {
       if (propagate) rethrow;
@@ -380,7 +391,11 @@ class _LumenHomeState extends State<LumenHome> {
   Future<void> _openBag() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => BagPage(repository: widget.commerceRepository),
+        builder: (_) => BagPage(
+          repository: widget.commerceRepository,
+          savedAddresses: _account.user == null ? null : _account.addresses,
+          email: _account.user?['email'] as String?,
+        ),
       ),
     );
     if (mounted) {
@@ -737,7 +752,7 @@ class ProductCard extends StatelessWidget {
                   ),
                 ),
                 FilledButton(
-                  onPressed: product.stock > 0 ? onAdd : null,
+                  onPressed: product.availableStock > 0 ? onAdd : null,
                   style: FilledButton.styleFrom(
                     backgroundColor: LumenColors.ink,
                     foregroundColor: LumenColors.goldLight,

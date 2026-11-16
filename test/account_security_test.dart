@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:lumen_store/account/account_controller.dart';
 import 'package:lumen_store/account/account_pages.dart';
+import 'package:lumen_store/account/address_pages.dart';
 import 'package:lumen_store/account/legal_pages.dart';
+import 'package:lumen_store/account/privacy_pages.dart';
 import 'package:lumen_store/account/security_pages.dart';
 import 'package:lumen_store/checkout/commerce_api.dart';
 
@@ -26,6 +28,9 @@ class FakeAccountApi {
   Json? registered;
   String? resetEmail;
   bool passwordChanged = false;
+  bool deleted = false;
+  final List<Json> addresses = [];
+  Json? profile;
   List<Json> devices = [
     {
       'id': 'atual-0001',
@@ -91,6 +96,36 @@ class FakeAccountApi {
         return reply({'detail': 'Senha atual incorreta.'}, 401);
       }
       passwordChanged = true;
+      return http.Response('', 204);
+    }
+    if (path.endsWith('/users/me') && request.method == 'PUT') {
+      profile = body;
+      return reply({'id': 1, 'email': 'cliente@example.com', ...body});
+    }
+    if (path.endsWith('/users/me/consents')) {
+      return reply({'id': 1, 'email': 'cliente@example.com', 'marketing_opt_in': body['marketing_opt_in']});
+    }
+    if (path.endsWith('/users/me/data-export')) {
+      return body['password'] == password
+          ? reply({'account': {'email': 'cliente@example.com'}, 'orders': []})
+          : reply({'detail': 'Senha incorreta.'}, 401);
+    }
+    if (path.endsWith('/users/me/delete')) {
+      if (body['password'] != password) return reply({'detail': 'Senha incorreta.'}, 401);
+      deleted = true;
+      return http.Response('', 204);
+    }
+    if (path.endsWith('/users/me/addresses') && request.method == 'GET') {
+      return reply(addresses);
+    }
+    if (path.endsWith('/users/me/addresses') && request.method == 'POST') {
+      final saved = {'id': addresses.length + 1, ...body};
+      addresses.add(saved);
+      return reply(saved, 201);
+    }
+    final addressMatch = RegExp(r'/users/me/addresses/(\d+)$').firstMatch(path);
+    if (addressMatch != null && request.method == 'DELETE') {
+      addresses.removeWhere((a) => '${a['id']}' == addressMatch.group(1));
       return http.Response('', 204);
     }
     return reply({'detail': 'Rota inesperada: $path'}, 404);
@@ -287,5 +322,117 @@ void main() {
       find.text('Senha alterada. Os outros aparelhos foram desconectados.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('profile saves name and only a valid phone', (tester) async {
+    phone(tester);
+    final api = FakeAccountApi();
+    final account = api.controller(signedIn: true);
+    addTearDown(account.dispose);
+    await account.initialize();
+    await tester.pumpWidget(MaterialApp(home: ProfileEditPage(account: account)));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('profile-name')), ' Ana Lima ');
+    await tester.enterText(find.byKey(const ValueKey('profile-phone')), '1234');
+    tester.testTextInput.hide();
+    await tester.tap(find.text('SALVAR'));
+    await tester.pumpAndSettle();
+    expect(find.text('Informe DDD e número (10 ou 11 dígitos).'), findsOneWidget);
+    expect(api.profile, isNull);
+
+    await tester.enterText(find.byKey(const ValueKey('profile-phone')), '(84) 99999-1234');
+    tester.testTextInput.hide();
+    await tester.tap(find.text('SALVAR'));
+    await tester.pumpAndSettle();
+    expect(api.profile, {'full_name': 'Ana Lima', 'phone': '84999991234'});
+    expect(account.user?['full_name'], 'Ana Lima');
+  });
+
+  testWidgets('privacy toggles marketing and deletes the account with the password', (
+    tester,
+  ) async {
+    phone(tester);
+    final api = FakeAccountApi();
+    final account = api.controller(signedIn: true);
+    addTearDown(account.dispose);
+    await account.initialize();
+    await tester.pumpWidget(MaterialApp(home: PrivacyPage(account: account)));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('marketing-switch')));
+    await tester.pumpAndSettle();
+    expect(account.user?['marketing_opt_in'], isTrue);
+
+    await tester.tap(find.text('Baixar meus dados'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('confirm-password')), 'senha errada');
+    await tester.tap(find.text('VER MEUS DADOS'));
+    await tester.pumpAndSettle();
+    expect(find.text('Senha incorreta.'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Baixar meus dados'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('confirm-password')), password);
+    await tester.tap(find.text('VER MEUS DADOS'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('cliente@example.com'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await reveal(tester, find.byKey(const ValueKey('delete-account')));
+    await tester.tap(find.byKey(const ValueKey('delete-account')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('confirm-password')), password);
+    await tester.tap(find.text('EXCLUIR DEFINITIVAMENTE'));
+    await tester.pumpAndSettle();
+    expect(api.deleted, isTrue);
+    expect(account.user, isNull);
+  });
+
+  testWidgets('addresses are validated, saved and listed', (tester) async {
+    phone(tester);
+    final api = FakeAccountApi();
+    final account = api.controller(signedIn: true);
+    addTearDown(account.dispose);
+    await account.initialize();
+    await tester.pumpWidget(MaterialApp(home: AddressesPage(account: account)));
+    await tester.pumpAndSettle();
+    expect(find.text('Nenhum endereço salvo ainda.'), findsOneWidget);
+
+    await tester.tap(find.text('NOVO ENDEREÇO'));
+    await tester.pumpAndSettle();
+    for (final entry in {
+      'recipient': 'Ana Lima',
+      'postal_code': '590',
+      'street': 'Rua das Flores',
+      'number': '10',
+      'district': 'Tirol',
+      'city': 'Natal',
+      'state': 'rn',
+    }.entries) {
+      final field = find.byKey(ValueKey('address-${entry.key}'));
+      await reveal(tester, field);
+      await tester.enterText(field, entry.value);
+    }
+    tester.testTextInput.hide();
+    await reveal(tester, find.text('SALVAR ENDEREÇO'));
+    await tester.tap(find.text('SALVAR ENDEREÇO'));
+    await tester.pumpAndSettle();
+    expect(find.text('CEP com 8 números.'), findsOneWidget);
+    expect(api.addresses, isEmpty);
+
+    final cep = find.byKey(const ValueKey('address-postal_code'));
+    await reveal(tester, cep);
+    await tester.enterText(cep, '59015-000');
+    tester.testTextInput.hide();
+    await reveal(tester, find.text('SALVAR ENDEREÇO'));
+    await tester.tap(find.text('SALVAR ENDEREÇO'));
+    await tester.pumpAndSettle();
+    expect(api.addresses.single['postal_code'], '59015000');
+    expect(api.addresses.single['state'], 'RN');
+    expect(find.text('Casa'), findsOneWidget);
+    expect(find.textContaining('Rua das Flores, 10'), findsOneWidget);
   });
 }
