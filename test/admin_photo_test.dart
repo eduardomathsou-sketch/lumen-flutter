@@ -103,7 +103,8 @@ void main() {
     PickedPhoto? next;
     Object? failure;
     await openForm(tester, repo, picker: () async {
-      if (failure != null) throw failure!;
+      final error = failure;
+      if (error != null) throw error;
       return next;
     });
     await tapVisible(tester, find.text('ENVIAR FOTO DO COMPUTADOR'));
