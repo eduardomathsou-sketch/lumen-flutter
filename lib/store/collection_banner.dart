@@ -63,7 +63,7 @@ class _HeroCarouselState extends State<HeroCarousel> {
         ),
       ];
       return SizedBox(
-        height: wide ? 440 : 400,
+        height: wide ? 460 : 520,
         child: Stack(
           children: [
             PageView(
@@ -136,16 +136,24 @@ class _Slide extends StatelessWidget {
           Image.asset(
             image!,
             fit: BoxFit.cover,
-            alignment: wide ? Alignment.centerRight : const Alignment(.55, 0),
+            alignment: wide ? Alignment.centerRight : const Alignment(0, -.6),
             errorBuilder: (_, _, _) => const SizedBox.shrink(),
           ),
+        // No computador o texto fica à esquerda; no celular, embaixo, com a foto à mostra.
         if (image != null)
-          const DecoratedBox(
+          DecoratedBox(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xF2F5F1EA), Color(0x99F5F1EA), Color(0x00F5F1EA)],
-                stops: [0, .45, .8],
-              ),
+              gradient: wide
+                  ? const LinearGradient(
+                      colors: [Color(0xF2F5F1EA), Color(0x99F5F1EA), Color(0x00F5F1EA)],
+                      stops: [0, .4, .7],
+                    )
+                  : const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0x00F5F1EA), Color(0xB3F5F1EA), Color(0xF7F5F1EA)],
+                      stops: [.25, .55, .8],
+                    ),
             ),
           ),
         Padding(
@@ -153,7 +161,9 @@ class _Slide extends StatelessWidget {
           // Com letra grande (acessibilidade) o bloco encolhe em vez de estourar.
           child: LayoutBuilder(
             builder: (context, box) => Align(
-              alignment: Alignment.centerLeft,
+              alignment: wide || image == null
+                  ? Alignment.centerLeft
+                  : Alignment.bottomLeft,
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
