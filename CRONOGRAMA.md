@@ -8,10 +8,11 @@ dos dois repositórios:
   branch [`evolucao-semestre`](https://github.com/eduardomathsou-sketch/Lumen-backend/tree/evolucao-semestre)
   ([Pull Request #1](https://github.com/eduardomathsou-sketch/Lumen-backend/pull/1)).
 
-Atualizado em 15/11/2026.
+Atualizado em 16/11/2026.
 
-**Publicação própria (em andamento):** loja em <https://lumen-store-omega.vercel.app> e API em
-<https://lumen-api-wine.vercel.app>, com banco PostgreSQL na Neon (São Paulo).
+**Publicada:** loja em <https://lumen-store-omega.vercel.app> e API em
+<https://lumen-api-wine.vercel.app>, com banco PostgreSQL na Neon (São Paulo), ligados pela
+integração oficial Neon × Vercel.
 
 **Legenda:** ✅ pronto no app e na API · 🟡 parcial (a coluna "Situação" diz o que falta) · ⏳ a fazer
 
@@ -19,12 +20,12 @@ Atualizado em 15/11/2026.
 
 | | Tarefas |
 | --- | --- |
-| ✅ Prontas | 19 de 22 |
-| 🟡 Parciais | 3 de 22 |
+| ✅ Prontas | 20 de 22 |
+| 🟡 Parciais | 2 de 22 |
 | ⏳ A fazer | 0 de 22 |
 
-As três parciais já funcionam de ponta a ponta em modo de teste; o que falta é uma conta
-externa (Mercado Pago, Melhor Envio) ou concluir a publicação.
+As duas parciais já funcionam de ponta a ponta em modo de teste; o que falta é a conta
+externa (Mercado Pago para o PIX de verdade e Melhor Envio para o frete calculado).
 
 ## As 22 tarefas
 
@@ -48,8 +49,8 @@ externa (Mercado Pago, Melhor Envio) ou concluir a publicação.
 | 16 | Criar sistema de Avaliações | M | ✅ Avaliações na página da peça e botão "Avaliar" no pedido entregue (1 a 5 estrelas e comentário). Só quem recebeu avalia; aparece só o primeiro nome | App: `lib/store/reviews.dart` · API: `app/services/review_service.py`, `/products/{id}/reviews` |
 | 17 | Criar tela Meus Pedidos | M | ✅ Lista com etapa e data; detalhe com retomada do PIX, linha do tempo da entrega, rastreio e pedido de devolução (7 dias arrependimento, 90 defeito). No painel: pedidos da loja, envio e entrega | App: `OrdersPage`/`OrderPage`, `lib/checkout/order_delivery.dart`, `lib/admin/admin_orders.dart` · API: `app/api/v1/endpoints/orders.py`, `app/services/return_service.py` |
 | 18 | Criar confirmação de pedido | P | ✅ Tela do pedido com PIX copia-e-cola, atualização automática e e-mail de confirmação | App: `OrderPage` · API: `app/services/notification_service.py`, `app/services/email_templates.py` |
-| 19 | Conectar aplicativo ao banco/API | G | 🟡 App ligado à API (teste de contrato roda a cada push) e banco PostgreSQL criado na Neon. **Falta:** concluir a publicação própria na Vercel | App: `lib/api_config.dart`, `test/backend_contract_test.dart` · API: `migrations/` (0001 a 0010) |
-| 20 | Realizar testes básicos do aplicativo | M | ✅ 126 testes automáticos na API (SQLite e PostgreSQL) e 57 no app, executados pelo GitHub Actions a cada push | App: `test/`, `.github/workflows/app.yml` · API: `tests/`, `.github/workflows/` |
+| 19 | Conectar aplicativo ao banco/API | G | ✅ Loja e API publicadas na Vercel (região São Paulo), banco PostgreSQL na Neon ligado pela integração oficial (nenhuma senha digitada à mão) e catálogo carregado. O teste de contrato liga o app à API a cada push | App: `lib/api_config.dart`, `test/backend_contract_test.dart` · API: `migrations/` (0001 a 0010) |
+| 20 | Realizar testes básicos do aplicativo | M | ✅ 128 testes automáticos na API (SQLite e PostgreSQL) e 58 no app, executados pelo GitHub Actions a cada push | App: `test/`, `.github/workflows/app.yml` · API: `tests/`, `.github/workflows/` |
 | 21 | Corrigir erros encontrados | M | ✅ Revisão de segurança feita e corrigida (lista abaixo); continua a cada entrega | Histórico de commits dos dois repositórios |
 | 22 | Gerar versão Android para testes | P | ✅ O GitHub Actions gera o APK de teste a cada push, já apontando para a API publicada, com o ícone da Lumen (baixar em Actions → run → Artifacts) | `android/`, job `android` em `.github/workflows/app.yml` |
 
@@ -79,3 +80,5 @@ A aula de 10/11 foi adiada; as entregas de 10/11 e 17/11 serão mostradas juntas
 | Um código de acesso roubado valia até vencer | Aparelhos conectados (ver e desconectar), sessão da administração de 12 horas e teto de sessões por conta |
 | A cópia dos dados pessoais ia direto para a área de transferência (outros apps podem ler) | A cópia aparece na tela e copiar vira uma escolha, com aviso para limpar depois |
 | Salvar um produto pelo painel apagava a composição e os cuidados (o painel não mandava esses campos) | Na edição, a API mantém os campos que não vieram; o painel agora edita composição, cuidados, tamanhos e cores |
+| A vitrine anunciava frete grátis com 2 peças, mas o frete fixo cobrava mesmo assim | Cotação e pedido zeram o frete a partir de 2 peças também no frete fixo |
+| No checkout, um CPF inválido fora da tela passava sem aviso do app (o formulário só conferia os campos visíveis) | Formulários longos mantêm todos os campos montados e validam tudo antes de enviar |
