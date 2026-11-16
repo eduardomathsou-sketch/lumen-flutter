@@ -217,6 +217,8 @@ class _AdminProductPageState extends State<AdminProductPage> {
   final _price = TextEditingController(),
       _stock = TextEditingController(text: '0');
   final _image = TextEditingController();
+  final _compareAt = TextEditingController();
+  String? _badge;
   final _package = {
     for (final entry in AdminProduct.packageDefaults.entries)
       entry.key: TextEditingController(text: '${entry.value}'),
@@ -244,6 +246,7 @@ class _AdminProductPageState extends State<AdminProductPage> {
       _composition,
       _care,
       _price,
+      _compareAt,
       _stock,
       _image,
       ..._package.values,
@@ -273,6 +276,10 @@ class _AdminProductPageState extends State<AdminProductPage> {
           _care.text = item.care ?? '';
           _price.text =
               '${item.priceCents ~/ 100},${(item.priceCents % 100).toString().padLeft(2, '0')}';
+          _compareAt.text = item.compareAtCents == null
+              ? ''
+              : '${item.compareAtCents! ~/ 100},${(item.compareAtCents! % 100).toString().padLeft(2, '0')}';
+          _badge = item.badge;
           _stock.text = '${item.stock}';
           _image.text = item.imageUrl ?? '';
           _preview = item.imageUrl;
@@ -340,6 +347,10 @@ class _AdminProductPageState extends State<AdminProductPage> {
             : _composition.text.trim(),
         'care': _care.text.trim().isEmpty ? null : _care.text.trim(),
         'price_cents': _cents(_price.text),
+        'compare_at_cents': _compareAt.text.trim().isEmpty
+            ? null
+            : _cents(_compareAt.text),
+        'badge': _badge,
         'stock': int.parse(_stock.text),
         'category_id': _categoryId,
         'image_url': _image.text.trim().isEmpty ? null : _image.text.trim(),
@@ -504,6 +515,59 @@ class _AdminProductPageState extends State<AdminProductPage> {
                         validator: (v) => _cents(v!) == null
                             ? 'Informe um preço positivo com até duas casas decimais.'
                             : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        key: const ValueKey('admin-compare-at'),
+                        controller: _compareAt,
+                        enabled: !_saving && !_loading,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Preço antes da promoção (R\$, opcional)',
+                          helperText:
+                              'Só preencha se a peça realmente custava esse valor antes: a loja mostra "de/por" e o % de desconto.',
+                          helperMaxLines: 2,
+                        ),
+                        validator: (v) {
+                          final text = v!.trim();
+                          if (text.isEmpty) return null;
+                          final before = _cents(text), now = _cents(_price.text);
+                          if (before == null) return 'Valor inválido, ex.: 189,90.';
+                          if (now != null && before <= now) {
+                            return 'Precisa ser maior que o preço atual.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String?>(
+                        // A chave muda depois de carregar, para o campo mostrar o selo salvo.
+                        key: ValueKey('admin-badge-${_version ?? 'novo'}'),
+                        initialValue: _badge,
+                        decoration: const InputDecoration(
+                          labelText: 'Selo na vitrine',
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: null, child: Text('Sem selo')),
+                          DropdownMenuItem(value: 'novidade', child: Text('Novidade')),
+                          DropdownMenuItem(
+                            value: 'pronta_entrega',
+                            child: Text('Pronta entrega'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'edicao_limitada',
+                            child: Text('Edição limitada'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'ultimas_pecas',
+                            child: Text('Últimas peças'),
+                          ),
+                        ],
+                        onChanged: _saving || _loading
+                            ? null
+                            : (value) => setState(() => _badge = value),
                       ),
                       const SizedBox(height: 18),
                       TextFormField(

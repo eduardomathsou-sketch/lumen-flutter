@@ -6,22 +6,27 @@ import 'package:flutter/material.dart';
 import 'checkout/commerce_api.dart';
 import 'checkout/checkout_pages.dart';
 
+import 'store/product_card.dart';
 import 'store/catalog_api.dart';
 import 'store/store_pages.dart';
 import 'store/store_layout.dart';
 import 'store/collection_banner.dart';
+import 'store/store_chrome.dart';
 import 'account/account_controller.dart';
 import 'account/account_pages.dart';
+import 'account/legal_pages.dart';
+import 'lumen_theme.dart';
 export 'store/catalog_api.dart';
 
 void main() => runApp(const LumenApp());
 
+/// Atalhos da paleta (ver lumen_theme.dart).
 class LumenColors {
-  static const ink = Color(0xFF171717);
-  static const paper = Color(0xFFF7F2EA);
-  static const gold = Color(0xFFD9B66A);
-  static const goldLight = Color(0xFFF5DEA0);
-  static const muted = Color(0xFFA7A097);
+  static const ink = Lumen.ink;
+  static const paper = Lumen.background;
+  static const gold = Lumen.gold;
+  static const goldLight = Lumen.gold;
+  static const muted = Lumen.muted;
 }
 
 class LumenApp extends StatelessWidget {
@@ -40,15 +45,7 @@ class LumenApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     title: 'Lumen',
     debugShowCheckedModeBanner: false,
-    theme: ThemeData(
-      useMaterial3: true,
-      scaffoldBackgroundColor: LumenColors.ink,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: LumenColors.gold,
-        brightness: Brightness.dark,
-        surface: LumenColors.ink,
-      ),
-    ),
+    theme: lumenTheme(),
     home: LumenExperience(
       productsRepository: productsRepository ?? ProductApi(),
       commerceRepository: commerceRepository ?? CommerceApi(),
@@ -164,7 +161,7 @@ class _SplashScreenState extends State<SplashScreen>
             gradient: RadialGradient(
               center: Alignment(-.1, -.35),
               radius: 1.15,
-              colors: [Color(0xFF30302D), LumenColors.ink],
+              colors: [Colors.white, Lumen.background],
             ),
           ),
           child: Center(
@@ -180,10 +177,10 @@ class _SplashScreenState extends State<SplashScreen>
                     Text(
                       'L U M E N',
                       style: TextStyle(
-                        color: LumenColors.goldLight,
-                        fontSize: 29,
+                        fontFamily: Lumen.display,
+                        color: Lumen.ink,
+                        fontSize: 32,
                         letterSpacing: 9,
-                        fontWeight: FontWeight.w300,
                       ),
                     ),
                     SizedBox(height: 42),
@@ -252,7 +249,10 @@ class _LumenHomeState extends State<LumenHome> {
   int? _lastUserId;
   CartSnapshot? _cart;
   bool _cartBusy = false;
+  // 0 início, 1 loja, 2 favoritos, 3 conta.
   int _selectedNav = 0;
+  int _searchRequest = 0;
+  final _scaffold = GlobalKey<ScaffoldState>();
   late Future<List<StoreProduct>> _productsFuture;
 
   @override
@@ -307,8 +307,9 @@ class _LumenHomeState extends State<LumenHome> {
           productId: product.id,
           repository: widget.productsRepository,
           account: _account,
-          onAdd: (p, q, v) =>
-              _addToBag(p, count: q, variant: v, propagate: true),
+          onAdd: (p, q, v) async {
+            await _addToBag(p, count: q, variant: v, propagate: true);
+          },
           onBag: _openBag,
         ),
       ),
@@ -325,17 +326,18 @@ class _LumenHomeState extends State<LumenHome> {
     });
   }
 
-  Future<void> _addToBag(
+  /// Devolve true quando a peça entrou na sacola.
+  Future<bool> _addToBag(
     StoreProduct product, {
     int count = 1,
     ProductVariant? variant,
     bool propagate = false,
   }) async {
-    if (_cartBusy) return;
+    if (_cartBusy) return false;
     if (product.hasVariants && variant == null) {
       // Peça com tamanho/cor: a escolha acontece na página do produto.
       await _openProduct(product);
-      return;
+      return false;
     }
     if (product.id <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -345,7 +347,7 @@ class _LumenHomeState extends State<LumenHome> {
           ),
         ),
       );
-      return;
+      return false;
     }
     setState(() => _cartBusy = true);
     try {
@@ -360,22 +362,58 @@ class _LumenHomeState extends State<LumenHome> {
         cart.version,
         variantId: variant?.id,
       );
-      if (!mounted) return;
+      if (!mounted) return true;
       setState(() => _cart = updated);
       final name = variant == null ? product.name : '${product.name} (${variant.label})';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$name adicionado à sua sacola.')),
       );
+      return true;
     } catch (e) {
       if (propagate) rethrow;
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(errorText(e))));
       }
+      return false;
     } finally {
       if (mounted) setState(() => _cartBusy = false);
     }
   }
+
+  /// "Comprar agora": coloca na sacola e já abre a sacola para finalizar.
+  Future<void> _buyNow(StoreProduct product) async {
+    if (await _addToBag(product) && mounted) await _openBag();
+  }
+
+  void _go(int page, {bool search = false}) => setState(() {
+    _selectedNav = page;
+    if (search) _searchRequest++;
+  });
+
+  /// Destinos do menu e do rodapé.
+  void _navigate(String target) {
+    switch (target) {
+      case 'home':
+        _go(0);
+      case 'shop':
+        _go(1);
+      case 'favorites':
+        _go(2);
+      case 'account':
+        _go(3);
+      case 'orders':
+        _openOrders();
+      default:
+        _openLegal(target);
+    }
+  }
+
+  Future<void> _openLegal(String slug) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => LegalPage(account: _account, slug: slug),
+    ),
+  );
 
   int get _bagCount => _cart?.count ?? 0;
 
@@ -418,7 +456,23 @@ class _LumenHomeState extends State<LumenHome> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    key: _scaffold,
+    backgroundColor: Lumen.background,
+    appBar: StoreTopBar(
+      bagCount: _bagCount,
+      onHome: () => _go(0),
+      onBag: _openBag,
+      onMenu: () => _scaffold.currentState?.openEndDrawer(),
+    ),
+    endDrawer: StoreMenu(
+      signedIn: _account.user != null,
+      onSelect: (target) {
+        Navigator.of(context).pop();
+        _navigate(target);
+      },
+    ),
     body: SafeArea(
+      top: false,
       child: StoreViewport(
         maxWidth: _selectedNav == 3 ? 640 : 1280,
         child: _selectedNav == 1
@@ -427,13 +481,16 @@ class _LumenHomeState extends State<LumenHome> {
                 account: _account,
                 onOpen: _openProduct,
                 onAdd: _addToBag,
+                onBuyNow: _buyNow,
+                searchRequest: _searchRequest,
               )
             : _selectedNav == 2
             ? FavoritesPage(
                 account: _account,
                 onOpen: _openProduct,
                 onAdd: _addToBag,
-                onExplore: () => setState(() => _selectedNav = 1),
+                onBuyNow: _buyNow,
+                onExplore: () => _go(1),
               )
             : _selectedNav == 3
             ? ProfilePage(
@@ -444,121 +501,53 @@ class _LumenHomeState extends State<LumenHome> {
             : CustomScrollView(
                 slivers: [
                   SliverToBoxAdapter(
+                    child: HeroCarousel(onShop: () => _go(1)),
+                  ),
+                  const SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(22, 14, 22, 0),
-                      child: Row(
-                        children: [
-                          const LumenWordmark(),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: _openOrders,
-                            tooltip: 'Meus pedidos',
-                            icon: const Icon(
-                              Icons.receipt_long_outlined,
-                              color: LumenColors.paper,
-                            ),
-                          ),
-                          Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              IconButton(
-                                onPressed: _openBag,
-                                icon: const Icon(
-                                  Icons.shopping_bag_outlined,
-                                  color: LumenColors.paper,
-                                ),
-                              ),
-                              if (_bagCount > 0)
-                                Positioned(
-                                  top: 3,
-                                  right: 4,
-                                  child: CircleAvatar(
-                                    radius: 8,
-                                    backgroundColor: LumenColors.gold,
-                                    child: Text(
-                                      '$_bagCount',
-                                      style: const TextStyle(
-                                        color: LumenColors.ink,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
+                      padding: EdgeInsets.fromLTRB(22, 22, 22, 0),
+                      child: TrustStrip(),
                     ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 28)),
-                  const SliverToBoxAdapter(child: _HomeHero()),
-                  const SliverToBoxAdapter(child: SizedBox(height: 25)),
-                  SliverToBoxAdapter(
-                    child: CollectionBanner(
-                      onExplore: () => setState(() => _selectedNav = 1),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 28)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
                   SliverToBoxAdapter(child: _buildProductShowcase()),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 28)),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 22),
                       child: OutlinedButton(
-                        onPressed: () => setState(() => _selectedNav = 1),
+                        onPressed: () => _go(1),
                         child: const Text('VER TODO O CATÁLOGO'),
                       ),
                     ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 48)),
+                  SliverToBoxAdapter(
+                    child: StoreFooter(onSelect: _navigate),
+                  ),
                 ],
               ),
       ),
     ),
-    bottomNavigationBar: ColoredBox(
-      color: const Color(0xFF20201E),
-      child: SafeArea(
-        top: false,
-        child: Center(
-          heightFactor: 1,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
-            child: NavigationBar(
-              height: 70,
-              backgroundColor: const Color(0xFF20201E),
-              indicatorColor: const Color(0x22D9B66A),
-              selectedIndex: _selectedNav,
-              onDestinationSelected: (value) =>
-                  setState(() => _selectedNav = value),
-              labelTextStyle: WidgetStateProperty.all(
-                const TextStyle(fontSize: 10, color: LumenColors.paper),
-              ),
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home_rounded),
-                  label: 'Início',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.grid_view_rounded),
-                  label: 'Categorias',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.favorite_border_rounded),
-                  selectedIcon: Icon(Icons.favorite_rounded),
-                  label: 'Favoritos',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.person_outline_rounded),
-                  selectedIcon: Icon(Icons.person_rounded),
-                  label: 'Perfil',
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    bottomNavigationBar: StoreBottomNav(
+      selected: switch (_selectedNav) {
+        0 => 0,
+        1 => 1,
+        _ => -1,
+      },
+      bagCount: _bagCount,
+      onSelect: (index) {
+        switch (index) {
+          case 0:
+            _go(0);
+          case 1:
+            _go(1);
+          case 2:
+            _go(1, search: true);
+          default:
+            _openBag();
+        }
+      },
     ),
   );
 
@@ -582,6 +571,14 @@ class _LumenHomeState extends State<LumenHome> {
               const Text(
                 'Novidades em breve. Nosso catálogo está sendo preparado.',
               ),
+            if (products.isNotEmpty) ...[
+              ShowcaseHeader(
+                label: 'Vitrine',
+                title: 'Escolhidos da semana',
+                count: products.length,
+              ),
+              const SizedBox(height: 24),
+            ],
             ProductCollection(
               children: [
                 for (final product in products)
@@ -591,6 +588,7 @@ class _LumenHomeState extends State<LumenHome> {
                     favorite: _account.isFavorite(product.id),
                     onFavorite: () => _toggleFavorite(product),
                     onAdd: () => _addToBag(product),
+                    onBuyNow: () => _buyNow(product),
                     onOpen: () => _openProduct(product),
                   ),
               ],
@@ -598,45 +596,6 @@ class _LumenHomeState extends State<LumenHome> {
           ],
         );
       },
-    ),
-  );
-}
-
-class _HomeHero extends StatelessWidget {
-  const _HomeHero();
-
-  @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.symmetric(horizontal: 22),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'NOVA COLEÇÃO',
-          style: TextStyle(
-            color: LumenColors.gold,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 2.1,
-          ),
-        ),
-        SizedBox(height: 9),
-        Text(
-          'Vista a sua\nessência.',
-          style: TextStyle(
-            color: LumenColors.paper,
-            fontSize: 38,
-            height: 1.03,
-            fontWeight: FontWeight.w300,
-            letterSpacing: -.8,
-          ),
-        ),
-        SizedBox(height: 10),
-        Text(
-          'Peças escolhidas para iluminar o seu dia.',
-          style: TextStyle(color: LumenColors.muted, fontSize: 14),
-        ),
-      ],
     ),
   );
 }
@@ -649,6 +608,7 @@ class ProductCard extends StatelessWidget {
     required this.onFavorite,
     required this.onAdd,
     required this.onOpen,
+    this.onBuyNow,
   });
 
   final StoreProduct product;
@@ -656,117 +616,16 @@ class ProductCard extends StatelessWidget {
   final VoidCallback onFavorite;
   final VoidCallback onAdd;
   final VoidCallback onOpen;
+  final VoidCallback? onBuyNow;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(24),
-    child: DecoratedBox(
-      decoration: const BoxDecoration(color: Color(0xFFEEE4D6)),
-      child: Column(
-        children: [
-          AspectRatio(
-            aspectRatio: 1,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: InkWell(
-                    onTap: onOpen,
-                    child: ProductVisual(product: product),
-                  ),
-                ),
-                Positioned(
-                  top: 15,
-                  left: 15,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 11,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: LumenColors.ink,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'EXCLUSIVO',
-                      style: TextStyle(
-                        color: LumenColors.goldLight,
-                        fontSize: 9,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 10,
-                  right: 8,
-                  child: IconButton(
-                    onPressed: onFavorite,
-                    icon: Icon(
-                      favorite
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      color: favorite
-                          ? const Color(0xFFAF4C55)
-                          : LumenColors.ink,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 14, 17),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.name,
-                        style: TextStyle(
-                          color: LumenColors.ink,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        product.shortDescription,
-                        style: TextStyle(
-                          color: Color(0xFF756C62),
-                          fontSize: 12,
-                        ),
-                      ),
-                      SizedBox(height: 9),
-                      Text(
-                        product.formattedPrice,
-                        style: TextStyle(
-                          color: LumenColors.ink,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                FilledButton(
-                  onPressed: product.availableStock > 0 ? onAdd : null,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: LumenColors.ink,
-                    foregroundColor: LumenColors.goldLight,
-                    padding: const EdgeInsets.all(15),
-                    shape: const CircleBorder(),
-                  ),
-                  child: const Icon(Icons.add_shopping_cart_rounded, size: 20),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
+  Widget build(BuildContext context) => ShopProductCard(
+    product: product,
+    favorite: favorite,
+    onFavorite: onFavorite,
+    onAdd: onAdd,
+    onBuyNow: onBuyNow,
+    onOpen: onOpen,
   );
 }
 
@@ -776,10 +635,7 @@ class _LoadingProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     height: 400,
-    decoration: BoxDecoration(
-      color: const Color(0xFF242421),
-      borderRadius: BorderRadius.circular(24),
-    ),
+    decoration: Lumen.card(),
     child: const Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -812,11 +668,7 @@ class _CatalogUnavailableNotice extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0x55756449)),
-        borderRadius: BorderRadius.circular(14),
-        color: const Color(0x33242421),
-      ),
+      decoration: Lumen.card(),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
         child: Row(
@@ -830,7 +682,7 @@ class _CatalogUnavailableNotice extends StatelessWidget {
             const Expanded(
               child: Text(
                 'Não foi possível conectar ao catálogo.',
-                style: TextStyle(color: LumenColors.paper, fontSize: 12),
+                style: TextStyle(color: Lumen.ink, fontSize: 12),
               ),
             ),
             TextButton(
@@ -919,11 +771,10 @@ class LumenMark extends StatelessWidget {
           child: Text(
             'L',
             style: TextStyle(
-              fontFamily: 'serif',
-              color: LumenColors.goldLight,
+              fontFamily: Lumen.display,
+              color: Lumen.ink,
               height: .88,
               fontSize: size * .99,
-              fontWeight: FontWeight.w300,
             ),
           ),
         ),
@@ -966,7 +817,7 @@ class _MarkPainter extends CustomPainter {
         size.height * .61,
       );
     canvas.drawPath(curve, paint);
-    final star = Paint()..color = LumenColors.goldLight;
+    final star = Paint()..color = LumenColors.gold;
     final center = Offset(size.width * .91, size.height * .28);
     final starPath = Path();
     for (var i = 0; i < 8; i++) {
@@ -987,17 +838,48 @@ class _MarkPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+/// Marca da loja: nome em Bodoni e assinatura pequena entre traços.
 class LumenWordmark extends StatelessWidget {
-  const LumenWordmark({super.key});
+  const LumenWordmark({super.key, this.color = Lumen.ink});
+  final Color color;
 
   @override
-  Widget build(BuildContext context) => const Text(
-    'LUMEN',
-    style: TextStyle(
-      color: LumenColors.goldLight,
-      fontSize: 19,
-      letterSpacing: 4.2,
-      fontWeight: FontWeight.w300,
-    ),
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      // Marca não cresce com o tamanho de letra do aparelho (como um logotipo).
+      Text(
+        'LUMEN',
+        textScaler: TextScaler.noScaling,
+        style: TextStyle(
+          fontFamily: Lumen.display,
+          color: color,
+          fontSize: 30,
+          height: 1,
+          letterSpacing: 3,
+        ),
+      ),
+      const SizedBox(height: 4),
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 16, height: .8, color: color.withValues(alpha: .5)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text(
+              'STORE',
+              textScaler: TextScaler.noScaling,
+              style: TextStyle(
+                color: color,
+                fontSize: 8,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 3,
+              ),
+            ),
+          ),
+          Container(width: 16, height: .8, color: color.withValues(alpha: .5)),
+        ],
+      ),
+    ],
   );
 }

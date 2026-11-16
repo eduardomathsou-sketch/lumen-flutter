@@ -27,13 +27,12 @@ class ProductCollection extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final width = constraints.maxWidth;
-      final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
-      final minCardWidth = textScale > 1.3 ? 340.0 : 260.0;
-      final columns = ((width + 20) / (minCardWidth + 20)).floor().clamp(1, 4);
-      final cardWidth = (width - (columns - 1) * 20) / columns;
+      // Vitrine: 1 coluna no celular, 2 no tablet e 3 no computador.
+      final columns = width >= 960 ? 3 : width >= 600 ? 2 : 1;
+      final cardWidth = (width - (columns - 1) * 24) / columns;
       return Wrap(
-        spacing: 20,
-        runSpacing: 20,
+        spacing: 24,
+        runSpacing: 24,
         children: [
           for (final child in children)
             SizedBox(width: cardWidth, child: child),

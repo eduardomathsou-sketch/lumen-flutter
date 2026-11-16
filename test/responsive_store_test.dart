@@ -38,8 +38,8 @@ void main() {
     (const Size(390, 844), 1, 1.0),
     (const Size(768, 1024), 2, 1.0),
     (const Size(1024, 768), 3, 1.0),
-    (const Size(1440, 900), 4, 1.0),
-    (const Size(1920, 1080), 4, 1.0),
+    (const Size(1440, 900), 3, 1.0),
+    (const Size(1920, 1080), 3, 1.0),
     (const Size(390, 844), 1, 2.0),
     (const Size(1440, 900), 3, 2.0),
   ]) {
@@ -94,13 +94,15 @@ void main() {
       }
 
       await checkCards('home');
-      await tester.tap(find.text('Categorias'));
+      await tester.tap(find.byKey(const ValueKey('nav-Loja')));
       await tester.pumpAndSettle();
       await checkCards('catalog');
 
       for (final product in await _Products().listProducts()) {
         await account.toggle(product);
       }
+      await tester.tap(find.byTooltip('Abrir menu'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Favoritos'));
       await tester.pumpAndSettle();
       await checkCards('favorite');

@@ -60,7 +60,27 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - assets/images/collection-banner.png
+    - assets/images/collection-banner.jpg
+
+  # Fontes livres (SIL Open Font License 1.1; licenças em assets/fonts/*-OFL.txt):
+  # Montserrat no texto e Bodoni Moda nos títulos e preços.
+  fonts:
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat-Regular.ttf
+        - asset: assets/fonts/Montserrat-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Montserrat-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Montserrat-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Montserrat-ExtraBold.ttf
+          weight: 800
+    - family: Bodoni
+      fonts:
+        - asset: assets/fonts/BodoniModa-Regular.ttf
+        - asset: assets/fonts/BodoniModa-SemiBold.ttf
+          weight: 600
 
   # To add assets to your application, add an assets section, like this:
   # assets:

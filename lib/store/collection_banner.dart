@@ -1,121 +1,238 @@
 import 'package:flutter/material.dart';
 
-/// Campaign copy stays native so it wraps and scales independently of the photo.
-class CollectionBanner extends StatelessWidget {
-  const CollectionBanner({super.key, required this.onExplore});
+import '../lumen_theme.dart';
 
-  final VoidCallback onExplore;
+/// Banner principal da home: três chamadas que a cliente passa de lado,
+/// com indicadores clicáveis. Sem troca automática (não distrai quem está lendo).
+class HeroCarousel extends StatefulWidget {
+  const HeroCarousel({super.key, required this.onShop});
+  final VoidCallback onShop;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 22),
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: ColoredBox(
-        color: const Color(0xFFF1E7D8),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final wide =
-                constraints.maxWidth >= 860 &&
-                MediaQuery.textScalerOf(context).scale(16) <= 22;
-            final photo = Image.asset(
-              'assets/images/collection-banner.png',
-              semanticLabel:
-                  'Vestido Aura, Bolsa Aurora, Bruma Lunar e Óleo Iluminar',
-              fit: BoxFit.contain,
-            );
-            final copy = Padding(
-              padding: EdgeInsets.all(wide ? 36 : 24),
-              child: DefaultTextStyle.merge(
-                style: const TextStyle(color: Color(0xFF171717), fontSize: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8,
-                      children: [
-                        Icon(
-                          Icons.local_shipping_outlined,
-                          size: 20,
-                          color: Color(0xFF705523),
-                        ),
-                        Text(
-                          'UM PRESENTE PARA VOCÊ',
-                          style: TextStyle(
-                            fontSize: 11,
-                            letterSpacing: 1.8,
-                            fontWeight: FontWeight.w700,
+  State<HeroCarousel> createState() => _HeroCarouselState();
+}
+
+class _HeroCarouselState extends State<HeroCarousel> {
+  final _pages = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  void _show(int page) => _pages.animateToPage(
+    page,
+    duration: const Duration(milliseconds: 380),
+    curve: Curves.easeOutCubic,
+  );
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final wide = constraints.maxWidth >= 760;
+      final slides = [
+        _Slide(
+          wide: wide,
+          image: 'assets/images/collection-banner.jpg',
+          label: 'Nova coleção',
+          title: 'Vista a sua\nessência.',
+          band: 'PEÇAS ESCOLHIDAS PARA ILUMINAR O SEU DIA',
+          action: 'VER A COLEÇÃO',
+          onAction: widget.onShop,
+        ),
+        _Slide(
+          wide: wide,
+          background: const Color(0xFFEFE9E1),
+          label: 'Um presente para você',
+          title: 'Frete grátis\na partir de 2 peças.',
+          band: 'INCLUSIVE DO MESMO PRODUTO',
+          action: 'ESCOLHER MEUS FAVORITOS',
+          onAction: widget.onShop,
+        ),
+        _Slide(
+          wide: wide,
+          background: Lumen.ink,
+          dark: true,
+          label: 'Pagamento',
+          title: 'PIX aprovado\nna hora.',
+          band: 'SEM TAXA · COMPRA PROTEGIDA',
+          action: 'COMPRAR AGORA',
+          onAction: widget.onShop,
+        ),
+      ];
+      return SizedBox(
+        height: wide ? 460 : 520,
+        child: Stack(
+          children: [
+            PageView(
+              controller: _pages,
+              onPageChanged: (page) => setState(() => _page = page),
+              children: slides,
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 16,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < slides.length; i++)
+                    Semantics(
+                      button: true,
+                      label: 'Ver banner ${i + 1}',
+                      child: GestureDetector(
+                        onTap: () => _show(i),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          width: i == _page ? 28 : 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: i == _page ? Lumen.ink : const Color(0x66FFFFFF),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0x33111111)),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Seus favoritos.\nFrete grátis.',
-                      style: TextStyle(
-                        fontSize: wide ? 42 : 32,
-                        height: 1.08,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -1.2,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Escolha 2 ou mais produtos e deixe a entrega com a gente.',
-                      style: TextStyle(height: 1.5),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+class _Slide extends StatelessWidget {
+  const _Slide({
+    required this.wide,
+    required this.label,
+    required this.title,
+    required this.band,
+    required this.action,
+    required this.onAction,
+    this.image,
+    this.background = const Color(0xFFF3EEE7),
+    this.dark = false,
+  });
+  final bool wide, dark;
+  final String label, title, band, action;
+  final VoidCallback onAction;
+  final String? image;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = dark ? Colors.white : Lumen.ink;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ColoredBox(color: background),
+        // No computador a foto ocupa a direita inteira (texto à esquerda, sem
+        // cobrir a peça); no celular ela fica em cima e o texto embaixo.
+        if (image != null && wide)
+          FractionallySizedBox(
+            alignment: Alignment.centerRight,
+            widthFactor: .64,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  image!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [background, background.withValues(alpha: 0)],
+                      stops: const [0, .22],
                     ),
-                    const SizedBox(height: 22),
-                    FilledButton(
-                      onPressed: onExplore,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF171717),
-                        foregroundColor: const Color(0xFFF5DEA0),
-                        minimumSize: const Size(0, 48),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 14,
-                        ),
-                      ),
-                      child: const Text(
-                        'ESCOLHER MEUS FAVORITOS',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    const Text(
-                      'Válido para 2 unidades ou mais, inclusive do mesmo produto. '
-                      'PAC grátis onde disponível. Consulte seu CEP no checkout. '
-                      'SEDEX cobrado à parte.',
-                      style: TextStyle(
-                        fontSize: 11,
-                        height: 1.5,
-                        color: Color(0xFF655B4D),
-                      ),
-                    ),
-                  ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (image != null && !wide) ...[
+          Image.asset(
+            image!,
+            fit: BoxFit.cover,
+            alignment: const Alignment(0, -.6),
+            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x00F5F1EA), Color(0xB3F5F1EA), Color(0xF7F5F1EA)],
+                stops: [.25, .55, .8],
+              ),
+            ),
+          ),
+        ],
+        Padding(
+          padding: EdgeInsets.fromLTRB(wide ? 56 : 24, 28, 24, 44),
+          // Com letra grande (acessibilidade) o bloco encolhe em vez de estourar.
+          child: LayoutBuilder(
+            builder: (context, box) => Align(
+              alignment: wide || image == null
+                  ? Alignment.centerLeft
+                  : Alignment.bottomLeft,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: box.maxWidth.clamp(0, 520).toDouble(),
+                  child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: Lumen.label.copyWith(color: dark ? Lumen.gold : Lumen.text),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: Lumen.displayStyle(wide ? 54 : 40, color: ink),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                color: dark ? Lumen.gold : Lumen.ink,
+                child: Text(
+                  band,
+                  style: TextStyle(
+                    color: dark ? Lumen.ink : Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.6,
+                  ),
                 ),
               ),
-            );
-            return wide
-                ? Row(
-                    children: [
-                      Expanded(flex: 5, child: copy),
-                      Expanded(flex: 6, child: photo),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [photo, copy],
-                  );
-          },
+              const SizedBox(height: 22),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: dark ? Colors.white : Lumen.ink,
+                  foregroundColor: dark ? Lumen.ink : Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                ),
+                onPressed: onAction,
+                child: Text(action),
+              ),
+            ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
-      ),
-    ),
-  );
+      ],
+    );
+  }
 }
