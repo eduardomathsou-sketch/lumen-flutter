@@ -222,10 +222,11 @@ class _NavItem extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(6),
           onTap: onTap,
-          child: SizedBox(
-            height: 48,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Badge(
                   isLabelVisible: badge > 0,
@@ -236,6 +237,12 @@ class _NavItem extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   label,
+                  // A barra fica legível com letra grande sem empurrar a tela.
+                  textScaler: MediaQuery.textScalerOf(
+                    context,
+                  ).clamp(maxScaleFactor: 1.4),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: color,
                     fontSize: 11,

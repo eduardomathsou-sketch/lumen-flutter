@@ -455,7 +455,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 : product.stock;
             final soldOut = product.availableStock == 0;
             return ListView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(22),
               children: [
                 ProductDetailLayout(
                   image: DecoratedBox(

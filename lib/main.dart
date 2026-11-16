@@ -847,8 +847,10 @@ class LumenWordmark extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     mainAxisSize: MainAxisSize.min,
     children: [
+      // Marca não cresce com o tamanho de letra do aparelho (como um logotipo).
       Text(
         'LUMEN',
+        textScaler: TextScaler.noScaling,
         style: TextStyle(
           fontFamily: Lumen.display,
           color: color,
@@ -866,6 +868,7 @@ class LumenWordmark extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 6),
             child: Text(
               'STORE',
+              textScaler: TextScaler.noScaling,
               style: TextStyle(
                 color: color,
                 fontSize: 8,

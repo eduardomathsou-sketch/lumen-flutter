@@ -100,8 +100,9 @@ void main() {
       await tester.tap(find.text('Favoritos'));
       await tester.pumpAndSettle();
       expect(find.text('Seus favoritos'), findsOneWidget);
-      await tester.ensureVisible(find.text('Vestido Aura'));
-      await tester.tap(find.text('Vestido Aura'));
+      await tester.ensureVisible(find.byTooltip('Ver detalhes'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Ver detalhes'));
       await tester.pumpAndSettle();
       expect(find.text('Detalhes do produto'), findsOneWidget);
       expect(find.text('Quantidade'), findsOneWidget);
