@@ -156,7 +156,7 @@ class _LegalPageState extends State<LegalPage> {
                   const SizedBox(height: 24),
                   Text(
                     'Versão ${data['version']}',
-                    style: const TextStyle(color: Color(0xFFA7A097)),
+                    style: const TextStyle(color: Color(0xFF6B7280)),
                   ),
                 ],
               ),

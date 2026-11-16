@@ -241,7 +241,7 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
               const Icon(
                 Icons.lock_reset,
                 size: 44,
-                color: Color(0xFFD9B66A),
+                color: Color(0xFFCBA96B),
               ),
               const SizedBox(height: 24),
               ...(_hasCode ? _confirmStep(context) : _requestStep(context)),

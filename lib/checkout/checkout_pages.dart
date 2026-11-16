@@ -374,7 +374,7 @@ class _BagProductHeading extends StatelessWidget {
         child: Icon(
           Icons.shopping_bag_outlined,
           size: 36,
-          color: Color(0xFF866B48),
+          color: Color(0xFFCBA96B),
         ),
       );
       final photo = ClipRRect(
@@ -382,7 +382,7 @@ class _BagProductHeading extends StatelessWidget {
         child: SizedBox.square(
           dimension: 88,
           child: ColoredBox(
-            color: const Color(0xFFF1E8D8),
+            color: const Color(0xFFF3F1EE),
             child: line.imageUrl == null || line.imageUrl!.isEmpty
                 ? placeholder
                 : Image.network(
@@ -401,7 +401,7 @@ class _BagProductHeading extends StatelessWidget {
           if (line.variantLabel != null)
             Text(
               line.variantLabel!,
-              style: const TextStyle(color: Color(0xFF756C62)),
+              style: const TextStyle(color: Color(0xFF6B7280)),
             ),
           const SizedBox(height: 6),
           Text('${money(line.unitPriceCents)} por unidade'),

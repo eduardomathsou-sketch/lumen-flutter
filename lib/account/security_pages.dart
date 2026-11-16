@@ -266,7 +266,7 @@ class _SecurityPageState extends State<SecurityPage> {
                 const SizedBox(height: 24),
                 const Text(
                   'Por segurança, cada conexão vale por até 7 dias. Depois disso é preciso entrar de novo.',
-                  style: TextStyle(color: Color(0xFFA7A097)),
+                  style: TextStyle(color: Color(0xFF6B7280)),
                 ),
               ],
             ),

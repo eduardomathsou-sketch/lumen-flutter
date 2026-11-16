@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../lumen_theme.dart';
 import 'catalog_api.dart';
 import 'store_pages.dart' show ProductVisual;
 
-const _ink = Color(0xFF171717);
-const _paper = Color(0xFFF7F2EA);
-const _gold = Color(0xFFD9B66A);
-const _muted = Color(0xFF756C62);
-const _sale = Color(0xFFB23A3A);
-
-/// Cartão da vitrine: foto grande com selos, preço em destaque e botão de compra.
-/// Usado na home, no catálogo e nos favoritos, para a loja ter um só padrão.
+/// Cartão da vitrine: foto vertical com selos, nome forte, preço em Bodoni, atalho para a
+/// sacola e "Comprar agora". Usado na home, na loja e nos favoritos.
 class ShopProductCard extends StatelessWidget {
   const ShopProductCard({
     super.key,
@@ -19,6 +14,7 @@ class ShopProductCard extends StatelessWidget {
     required this.onFavorite,
     required this.onAdd,
     required this.onOpen,
+    this.onBuyNow,
     this.favoriteBusy = false,
   });
 
@@ -26,18 +22,17 @@ class ShopProductCard extends StatelessWidget {
   final bool favorite, favoriteBusy;
   final VoidCallback onFavorite, onAdd, onOpen;
 
+  /// Adiciona e já leva para a sacola; sem ele, faz o mesmo que [onAdd].
+  final VoidCallback? onBuyNow;
+
   @override
   Widget build(BuildContext context) {
     final available = product.availableStock > 0;
     final sizes = product.sizes;
     return DecoratedBox(
-      decoration: BoxDecoration(
-        color: _paper,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _gold.withValues(alpha: .6)),
-      ),
+      decoration: Lumen.card(),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(19),
+        borderRadius: Lumen.radius,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -48,7 +43,7 @@ class ShopProductCard extends StatelessWidget {
                   label: 'Ver ${product.name}',
                   child: InkWell(
                     onTap: onOpen,
-                    child: ProductVisual(product: product),
+                    child: ProductVisual(product: product, aspectRatio: 3 / 4),
                   ),
                 ),
                 Positioned(
@@ -59,32 +54,33 @@ class ShopProductCard extends StatelessWidget {
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      if (product.badgeLabel != null)
-                        ShopPill(
-                          text: product.badgeLabel!,
-                          icon: Icons.auto_awesome,
-                        ),
+                      ShopPill(
+                        text: product.badgeLabel ?? 'LUMEN',
+                        icon: Icons.auto_awesome,
+                      ),
                       if (product.hasDiscount)
                         ShopPill(
                           text: '-${product.discountPercent}%',
-                          background: _sale,
+                          background: Lumen.sale,
                           foreground: Colors.white,
+                          size: 10,
                         ),
                     ],
                   ),
                 ),
                 Positioned(
-                  top: 6,
-                  right: 6,
+                  top: 8,
+                  right: 8,
                   child: IconButton(
                     tooltip: favorite ? 'Remover favorito' : 'Favoritar produto',
                     onPressed: favoriteBusy ? null : onFavorite,
                     style: IconButton.styleFrom(
-                      backgroundColor: _paper.withValues(alpha: .92),
+                      backgroundColor: const Color(0xF2FFFFFF),
                     ),
                     icon: Icon(
                       favorite ? Icons.favorite : Icons.favorite_border,
-                      color: favorite ? const Color(0xFFAF4C55) : _ink,
+                      color: favorite ? Lumen.sale : Lumen.ink,
+                      size: 20,
                     ),
                   ),
                 ),
@@ -95,18 +91,18 @@ class ShopProductCard extends StatelessWidget {
                     right: 64,
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: ShopPill(text: product.categoryName!.toUpperCase()),
+                      child: ShopPill(text: product.categoryName!, caps: false),
                     ),
                   ),
                 Positioned(
-                  right: 10,
-                  bottom: 10,
+                  right: 12,
+                  bottom: 12,
                   child: IconButton.filled(
                     tooltip: 'Ver detalhes',
                     onPressed: onOpen,
                     style: IconButton.styleFrom(
-                      backgroundColor: _ink,
-                      foregroundColor: _paper,
+                      backgroundColor: Lumen.ink,
+                      foregroundColor: Colors.white,
                     ),
                     icon: const Icon(Icons.visibility_outlined, size: 20),
                   ),
@@ -114,83 +110,125 @@ class ShopProductCard extends StatelessWidget {
               ],
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  InkWell(
-                    onTap: onOpen,
-                    child: Text(
-                      product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _ink,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Linha sempre presente: cartões lado a lado ficam com o botão alinhado.
-                  Text(
-                    !available
-                        ? 'Esgotado'
-                        : sizes.isNotEmpty
-                        ? 'Tamanhos: ${sizes.join(' · ')}'
-                        : '\u00A0',
-                    style: const TextStyle(color: _muted, fontSize: 13),
-                  ),
-                  const SizedBox(height: 12),
-                  if (product.hasDiscount)
-                    Text(
-                      product.formattedCompareAt!,
-                      style: const TextStyle(
-                        color: _muted,
-                        fontSize: 13,
-                        decoration: TextDecoration.lineThrough,
-                      ),
-                    ),
-                  Text(
-                    product.formattedPrice,
-                    style: const TextStyle(
-                      fontFamily: 'Playfair',
-                      color: _ink,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w600,
-                      fontVariations: [FontVariation.weight(600)],
-                      height: 1.15,
-                    ),
-                  ),
-                  const Text(
-                    'à vista no PIX',
-                    style: TextStyle(color: _muted, fontSize: 12),
-                  ),
-                  const SizedBox(height: 14),
-                  Tooltip(
-                    message: 'Adicionar à sacola',
-                    child: FilledButton.icon(
-                      onPressed: available ? onAdd : null,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _ink,
-                        foregroundColor: _paper,
-                        disabledBackgroundColor: const Color(0xFFD9D1C5),
-                        minimumSize: const Size.fromHeight(48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.shopping_bag_outlined, size: 18),
-                      label: Text(
-                        available ? 'COMPRAR' : 'ESGOTADO',
+              padding: const EdgeInsets.all(18),
+              child: LayoutBuilder(
+                builder: (context, constraints) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    InkWell(
+                      onTap: onOpen,
+                      child: Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          letterSpacing: 1.2,
-                          fontWeight: FontWeight.w700,
+                          color: Lumen.ink,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2,
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    // Linha sempre presente: cartões lado a lado mantêm o botão alinhado.
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: !available
+                          ? const Text(
+                              'Esgotado',
+                              style: TextStyle(
+                                color: Lumen.sale,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            )
+                          : Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                if (sizes.isEmpty) const Text(' '),
+                                for (final size in sizes.take(5)) _SizeTag(size),
+                                if (sizes.length > 5)
+                                  Text(
+                                    '+${sizes.length - 5}',
+                                    style: const TextStyle(
+                                      color: Lumen.muted,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product.formattedCompareAt ?? ' ',
+                                style: const TextStyle(
+                                  color: Lumen.faint,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  product.formattedPrice,
+                                  style: Lumen.displayStyle(
+                                    constraints.maxWidth < 300 ? 30 : 36,
+                                    weight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'à vista no PIX',
+                                style: TextStyle(
+                                  color: Lumen.muted,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Tooltip(
+                          message: 'Adicionar à sacola',
+                          child: IconButton.filled(
+                            onPressed: available ? onAdd : null,
+                            style: IconButton.styleFrom(
+                              backgroundColor: Lumen.ink,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: const Color(0xFFE5E7EB),
+                              fixedSize: const Size(48, 48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: Lumen.radius,
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.shopping_cart_outlined,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: available ? (onBuyNow ?? onAdd) : null,
+                      icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+                      label: Text(available ? 'Comprar agora' : 'Esgotado'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -200,45 +238,72 @@ class ShopProductCard extends StatelessWidget {
   }
 }
 
-/// Selo arredondado sobre a foto (novidade, desconto, categoria).
+class _SizeTag extends StatelessWidget {
+  const _SizeTag(this.size);
+  final String size;
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(minWidth: 26),
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: const Color(0xFFE5E7EB)),
+    ),
+    child: Text(
+      size,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: Lumen.ink,
+      ),
+    ),
+  );
+}
+
+/// Selo arredondado sobre a foto (selo, desconto, categoria).
 class ShopPill extends StatelessWidget {
   const ShopPill({
     super.key,
     required this.text,
     this.icon,
-    this.background = _paper,
-    this.foreground = _ink,
+    this.background = const Color(0xF2FFFFFF),
+    this.foreground = Lumen.ink,
+    this.size = 11,
+    this.caps = true,
   });
   final String text;
   final IconData? icon;
   final Color background, foreground;
+  final double size;
+  final bool caps;
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
     decoration: BoxDecoration(
       color: background,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(999),
       boxShadow: const [
-        BoxShadow(color: Color(0x1F000000), blurRadius: 6, offset: Offset(0, 2)),
+        BoxShadow(color: Color(0x1A000000), blurRadius: 8, offset: Offset(0, 2)),
       ],
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (icon != null) ...[
-          Icon(icon, size: 12, color: _gold),
-          const SizedBox(width: 5),
+          Icon(icon, size: 12, color: Lumen.gold),
+          const SizedBox(width: 6),
         ],
         Flexible(
           child: Text(
-            text,
+            caps ? text.toUpperCase() : text,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: foreground,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: .8,
+              fontSize: size,
+              fontWeight: caps ? FontWeight.w800 : FontWeight.w700,
+              letterSpacing: caps ? .3 : 0,
             ),
           ),
         ),
@@ -247,7 +312,7 @@ class ShopPill extends StatelessWidget {
   );
 }
 
-/// Cabeçalho de seção no estilo vitrine: rótulo dourado, título e contagem de peças.
+/// Cabeçalho de seção: rótulo pequeno, título em Bodoni e contagem à direita.
 class ShowcaseHeader extends StatelessWidget {
   const ShowcaseHeader({
     super.key,
@@ -259,59 +324,59 @@ class ShowcaseHeader extends StatelessWidget {
   final int? count;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.end,
     children: [
-      Text(
-        label,
-        style: const TextStyle(
-          color: _gold,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 2.1,
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label.toUpperCase(), style: Lumen.label),
+            const SizedBox(height: 6),
+            Text(title, style: Lumen.displayStyle(36)),
+          ],
         ),
       ),
-      const SizedBox(height: 6),
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontFamily: 'Playfair',
-                color: _paper,
-                fontSize: 28,
-                height: 1.1,
-              ),
+      if (count != null)
+        Padding(
+          padding: const EdgeInsets.only(left: 12, bottom: 6),
+          child: Text(
+            count == 1 ? '1 produto' : '$count produtos',
+            style: const TextStyle(
+              color: Lumen.muted,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          if (count != null)
-            Text(
-              count == 1 ? '1 peça' : '$count peças',
-              style: const TextStyle(color: Color(0xFFA7A097), fontSize: 13),
-            ),
-        ],
-      ),
+        ),
     ],
   );
 }
 
-/// Faixa de confiança abaixo do banner: só promessas que a loja cumpre.
+/// Faixa de confiança: só promessas que a loja cumpre.
 class TrustStrip extends StatelessWidget {
   const TrustStrip({super.key});
 
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 18,
-    runSpacing: 10,
-    alignment: WrapAlignment.center,
-    children: const [
-      _TrustItem(Icons.verified_user_outlined, 'Compra segura'),
-      _TrustItem(Icons.pix, 'Pagamento por PIX'),
-      _TrustItem(Icons.local_shipping_outlined, 'Frete grátis a partir de 2 peças'),
-      _TrustItem(Icons.autorenew, 'Devolução em até 7 dias'),
-    ],
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: Lumen.card(),
+    child: const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Wrap(
+        spacing: 22,
+        runSpacing: 12,
+        alignment: WrapAlignment.spaceAround,
+        children: [
+          _TrustItem(Icons.verified_user_outlined, 'Compra segura'),
+          _TrustItem(Icons.pix, 'Pagamento por PIX'),
+          _TrustItem(
+            Icons.local_shipping_outlined,
+            'Frete grátis a partir de 2 peças',
+          ),
+          _TrustItem(Icons.autorenew, 'Devolução em até 7 dias'),
+        ],
+      ),
+    ),
   );
 }
 
@@ -323,14 +388,46 @@ class _TrustItem extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 16, color: _gold),
-      const SizedBox(width: 6),
+      Icon(icon, size: 18, color: Lumen.gold),
+      const SizedBox(width: 8),
       Flexible(
         child: Text(
           text,
-          style: const TextStyle(color: Color(0xFFA7A097), fontSize: 12),
+          style: const TextStyle(
+            color: Lumen.ink,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     ],
+  );
+}
+
+/// Cartão de informação com ícone dourado (página da peça, garantias).
+class InfoCard extends StatelessWidget {
+  const InfoCard({super.key, required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    decoration: Lumen.card(),
+    child: Row(
+      children: [
+        Icon(icon, size: 18, color: Lumen.gold),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Lumen.ink,
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    ),
   );
 }

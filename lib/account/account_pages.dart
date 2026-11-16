@@ -45,13 +45,23 @@ class ProfilePage extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       children: [
         const Text(
+          'MINHA CONTA',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.4,
+            color: Color(0xFF444444),
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
           'Seu espaço Lumen',
-          style: TextStyle(fontSize: 30, fontWeight: FontWeight.w500),
+          style: TextStyle(fontFamily: 'Bodoni', fontSize: 34, height: 1.1),
         ),
         const SizedBox(height: 8),
         const Text(
           'Sua conta, seus favoritos, suas escolhas.',
-          style: TextStyle(color: Color(0xFFA7A097)),
+          style: TextStyle(color: Color(0xFF6B7280)),
         ),
         const SizedBox(height: 32),
         if (account.loading)
@@ -462,7 +472,7 @@ class _AuthPageState extends State<AuthPage> {
                   const Icon(
                     Icons.auto_awesome_outlined,
                     size: 44,
-                    color: Color(0xFFD9B66A),
+                    color: Color(0xFFCBA96B),
                   ),
                   const SizedBox(height: 24),
                   Text(

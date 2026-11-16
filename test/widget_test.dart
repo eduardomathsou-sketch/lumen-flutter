@@ -52,11 +52,7 @@ void main() {
     await tester.tap(find.text('L U M E N'));
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.text('ESCOLHER MEUS FAVORITOS'),
-      200,
-    );
-    await tester.tap(find.text('ESCOLHER MEUS FAVORITOS'));
+    await tester.tap(find.text('VER A COLEÇÃO'));
     await tester.pumpAndSettle();
     expect(find.text('Vestido Aura'), findsOneWidget);
     expect(find.text('R\$ 289,90'), findsOneWidget);

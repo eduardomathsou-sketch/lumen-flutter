@@ -59,7 +59,8 @@ void main() {
     expect(find.text('-23%'), findsOneWidget);
     expect(find.text('R\$ 169,90'), findsOneWidget);
     expect(find.text('R\$ 129,90'), findsOneWidget);
-    expect(find.text('MODA FEMININA'), findsOneWidget);
+    expect(find.text('Moda feminina'), findsOneWidget);
+    expect(find.text('NOVIDADE'), findsOneWidget);
     await tester.tap(find.byTooltip('Adicionar à sacola'));
     expect(added, 1);
     expect(tester.takeException(), isNull);
@@ -70,7 +71,7 @@ void main() {
   ) async {
     var added = 0;
     await pumpCard(tester, product(stock: 0), onAdd: () => added++);
-    expect(find.text('ESGOTADO'), findsOneWidget);
+    expect(find.text('Esgotado'), findsWidgets);
     expect(find.textContaining('%'), findsNothing);
     await tester.tap(find.byTooltip('Adicionar à sacola'));
     expect(added, 0);

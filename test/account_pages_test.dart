@@ -83,10 +83,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Categorias'));
+      await tester.tap(find.byKey(const ValueKey('nav-Loja')));
       await tester.pumpAndSettle();
       expect(find.text('Encontre sua próxima escolha'), findsOneWidget);
-      expect(find.text('Moda feminina'), findsOneWidget);
+      expect(find.text('Moda feminina'), findsWidgets);
       await tester.enterText(
         find.byKey(const ValueKey('catalog-search')),
         'Vestido',
@@ -94,6 +94,8 @@ void main() {
       await tester.testTextInput.receiveAction(TextInputAction.search);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Favoritar produto'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Abrir menu'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Favoritos'));
       await tester.pumpAndSettle();
@@ -105,7 +107,9 @@ void main() {
       expect(find.text('Quantidade'), findsOneWidget);
       await tester.pageBack();
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Perfil'));
+      await tester.tap(find.byTooltip('Abrir menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Entrar ou criar conta'));
       await tester.pumpAndSettle();
       expect(find.text('Seu espaço Lumen'), findsOneWidget);
       expect(find.text('CRIAR CONTA'), findsOneWidget);
