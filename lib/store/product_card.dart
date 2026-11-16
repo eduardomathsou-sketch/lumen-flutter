@@ -321,7 +321,12 @@ class _TrustItem extends StatelessWidget {
     children: [
       Icon(icon, size: 16, color: _gold),
       const SizedBox(width: 6),
-      Text(text, style: const TextStyle(color: Color(0xFFA7A097), fontSize: 12)),
+      Flexible(
+        child: Text(
+          text,
+          style: const TextStyle(color: Color(0xFFA7A097), fontSize: 12),
+        ),
+      ),
     ],
   );
 }
