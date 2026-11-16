@@ -91,6 +91,9 @@ void main() {
     expect(repo.contentType, 'image/jpeg');
     expect(find.text(photoUrl), findsOneWidget);
     expect(find.textContaining('Foto enviada'), findsOneWidget);
+    // Espera o aviso sumir para ele não cobrir o botão de salvar.
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
     await tapVisible(tester, find.text('SALVAR PRODUTO'));
     expect(repo.saved!['image_url'], photoUrl);
     expect(tester.takeException(), isNull);
