@@ -131,13 +131,16 @@ class ShopProductCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (!available || sizes.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      available ? 'Tamanhos: ${sizes.join(' · ')}' : 'Esgotado',
-                      style: const TextStyle(color: _muted, fontSize: 13),
-                    ),
-                  ],
+                  const SizedBox(height: 4),
+                  // Linha sempre presente: cartões lado a lado ficam com o botão alinhado.
+                  Text(
+                    !available
+                        ? 'Esgotado'
+                        : sizes.isNotEmpty
+                        ? 'Tamanhos: ${sizes.join(' · ')}'
+                        : '\u00A0',
+                    style: const TextStyle(color: _muted, fontSize: 13),
+                  ),
                   const SizedBox(height: 12),
                   if (product.hasDiscount)
                     Text(
