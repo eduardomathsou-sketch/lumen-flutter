@@ -9,6 +9,8 @@ class AdminProduct {
       composition = data['composition'] as String?,
       care = data['care'] as String?,
       priceCents = data['price_cents'] as int,
+      compareAtCents = data['compare_at_cents'] as int?,
+      badge = data['badge'] as String?,
       stock = data['stock'] as int,
       categoryId = data['category_id'] as int?,
       categoryName = data['category_name'] as String?,
@@ -28,7 +30,8 @@ class AdminProduct {
   };
   final Map<String, int> package;
   final int id, priceCents, stock, version;
-  final int? categoryId;
+  final int? categoryId, compareAtCents;
+  final String? badge;
   final String name;
   final String? description, composition, care, categoryName, imageUrl;
   final bool active;

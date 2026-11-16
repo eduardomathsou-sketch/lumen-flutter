@@ -5,6 +5,7 @@ import '../checkout/checkout_pages.dart';
 import '../checkout/commerce_api.dart' show maxUnitsPerItem;
 import 'reviews.dart';
 import 'catalog_api.dart';
+import 'product_card.dart';
 import 'store_layout.dart';
 
 class ProductVisual extends StatelessWidget {
@@ -80,104 +81,23 @@ class CatalogTile extends StatelessWidget {
   final AccountController account;
   final VoidCallback onOpen, onAdd;
   @override
-  Widget build(BuildContext context) => Card(
-    clipBehavior: Clip.antiAlias,
-    margin: EdgeInsets.zero,
-    color: const Color(0xFFEEE4D6),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Stack(
-          children: [
-            Semantics(
-              button: true,
-              label: 'Ver ${product.name}',
-              child: InkWell(
-                onTap: onOpen,
-                child: ProductVisual(product: product),
-              ),
-            ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: IconButton(
-                tooltip: account.isFavorite(product.id)
-                    ? 'Remover favorito'
-                    : 'Favoritar produto',
-                onPressed:
-                    account.loading || account.updating.contains(product.id)
-                    ? null
-                    : () async {
-                        try {
-                          await account.toggle(product);
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(errorText(e))),
-                            );
-                          }
-                        }
-                      },
-                icon: Icon(
-                  account.isFavorite(product.id)
-                      ? Icons.favorite
-                      : Icons.favorite_border,
-                  color: const Color(0xFF866B48),
-                ),
-              ),
-            ),
-          ],
-        ),
-        InkWell(
-          onTap: onOpen,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.name,
-                        style: const TextStyle(
-                          color: Color(0xFF171717),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        product.availableStock > 0
-                            ? product.shortDescription
-                            : 'Esgotado',
-                        style: const TextStyle(color: Color(0xFF756C62)),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        product.formattedPrice,
-                        style: const TextStyle(
-                          color: Color(0xFF171717),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Adicionar à sacola',
-                  onPressed: product.availableStock > 0 ? onAdd : null,
-                  icon: const Icon(
-                    Icons.add_shopping_cart,
-                    color: Color(0xFF171717),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
+  Widget build(BuildContext context) => ShopProductCard(
+    product: product,
+    favorite: account.isFavorite(product.id),
+    favoriteBusy: account.loading || account.updating.contains(product.id),
+    onFavorite: () async {
+      try {
+        await account.toggle(product);
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorText(e))),
+          );
+        }
+      }
+    },
+    onAdd: onAdd,
+    onOpen: onOpen,
   );
 }
 
@@ -477,9 +397,34 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   details: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (product.badgeLabel != null || product.hasDiscount) ...[
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            if (product.badgeLabel != null)
+                              ShopPill(
+                                text: product.badgeLabel!,
+                                icon: Icons.auto_awesome,
+                              ),
+                            if (product.hasDiscount)
+                              ShopPill(
+                                text: '-${product.discountPercent}%',
+                                background: const Color(0xFFB23A3A),
+                                foreground: Colors.white,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       Text(
-                        product.categoryName ?? 'Seleção Lumen',
-                        style: const TextStyle(color: Color(0xFFD9B66A)),
+                        (product.categoryName ?? 'Seleção Lumen').toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(0xFFD9B66A),
+                          fontSize: 12,
+                          letterSpacing: 1.6,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -487,9 +432,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 12),
+                      if (product.hasDiscount)
+                        Text(
+                          product.formattedCompareAt!,
+                          style: const TextStyle(
+                            color: Color(0xFFA7A097),
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
                       Text(
                         product.formattedPrice,
-                        style: Theme.of(context).textTheme.headlineSmall,
+                        style: const TextStyle(
+                          fontFamily: 'serif',
+                          fontSize: 32,
+                          fontWeight: FontWeight.w600,
+                          height: 1.15,
+                        ),
+                      ),
+                      const Text(
+                        'à vista no PIX',
+                        style: TextStyle(color: Color(0xFFA7A097), fontSize: 13),
                       ),
                       if (product.formattedRating != null) ...[
                         const SizedBox(height: 6),

@@ -46,6 +46,8 @@ class StoreProduct {
     this.variants = const [],
     this.ratingAverage,
     this.ratingCount = 0,
+    this.compareAtCents,
+    this.badge,
   });
 
   final int id;
@@ -63,6 +65,10 @@ class StoreProduct {
   final List<ProductVariant> variants;
   final double? ratingAverage;
   final int ratingCount;
+  // Preço "de" (promoção real); a API só manda quando é maior que o preço atual.
+  final int? compareAtCents;
+  // Selo da vitrine: novidade, pronta_entrega, edicao_limitada ou ultimas_pecas.
+  final String? badge;
 
   factory StoreProduct.fromJson(Map<String, dynamic> json) => StoreProduct(
     id: json['id'] as int,
@@ -80,6 +86,8 @@ class StoreProduct {
         .toList(),
     ratingAverage: (json['rating_average'] as num?)?.toDouble(),
     ratingCount: json['rating_count'] as int? ?? 0,
+    compareAtCents: json['compare_at_cents'] as int?,
+    badge: _text(json['badge']),
   );
 
   static String? _text(Object? value) {
@@ -96,14 +104,40 @@ class StoreProduct {
 
   String get shortDescription => categoryName ?? description ?? 'Seleção Lumen';
 
-  String get formattedPrice {
-    final cents = priceCents ?? (price * 100).round();
+  int get cents => priceCents ?? (price * 100).round();
+
+  String get formattedPrice => _money(cents);
+
+  static String _money(int cents) {
     final reais = (cents ~/ 100).toString().replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
       (_) => '.',
     );
     return 'R\$ $reais,${(cents % 100).toString().padLeft(2, '0')}';
   }
+
+  /// Promoção só aparece quando o preço "de" é maior que o atual.
+  bool get hasDiscount => compareAtCents != null && compareAtCents! > cents;
+
+  String? get formattedCompareAt => hasDiscount ? _money(compareAtCents!) : null;
+
+  /// Desconto arredondado para baixo: nunca anuncia mais do que dá.
+  int get discountPercent =>
+      hasDiscount ? ((compareAtCents! - cents) * 100) ~/ compareAtCents! : 0;
+
+  String? get badgeLabel => switch (badge) {
+    'novidade' => 'NOVIDADE',
+    'pronta_entrega' => 'PRONTA ENTREGA',
+    'edicao_limitada' => 'EDIÇÃO LIMITADA',
+    'ultimas_pecas' => 'ÚLTIMAS PEÇAS',
+    _ => null,
+  };
+
+  /// Tamanhos à venda, na ordem cadastrada (sem repetir).
+  List<String> get sizes => [
+    for (final v in variants)
+      if (v.stock > 0 && v.size.isNotEmpty) v.size,
+  ].toSet().toList();
 
   String? get formattedRating => ratingAverage == null || ratingCount == 0
       ? null

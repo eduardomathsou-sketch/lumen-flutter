@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'checkout/commerce_api.dart';
 import 'checkout/checkout_pages.dart';
 
+import 'store/product_card.dart';
 import 'store/catalog_api.dart';
 import 'store/store_pages.dart';
 import 'store/store_layout.dart';
@@ -499,6 +500,13 @@ class _LumenHomeState extends State<LumenHome> {
                       onExplore: () => setState(() => _selectedNav = 1),
                     ),
                   ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 18)),
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 22),
+                      child: TrustStrip(),
+                    ),
+                  ),
                   const SliverToBoxAdapter(child: SizedBox(height: 28)),
                   SliverToBoxAdapter(child: _buildProductShowcase()),
                   const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -582,6 +590,14 @@ class _LumenHomeState extends State<LumenHome> {
               const Text(
                 'Novidades em breve. Nosso catálogo está sendo preparado.',
               ),
+            if (products.isNotEmpty) ...[
+              ShowcaseHeader(
+                label: 'VITRINE',
+                title: 'Escolhidos da estação',
+                count: products.length,
+              ),
+              const SizedBox(height: 18),
+            ],
             ProductCollection(
               children: [
                 for (final product in products)
@@ -658,115 +674,12 @@ class ProductCard extends StatelessWidget {
   final VoidCallback onOpen;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(24),
-    child: DecoratedBox(
-      decoration: const BoxDecoration(color: Color(0xFFEEE4D6)),
-      child: Column(
-        children: [
-          AspectRatio(
-            aspectRatio: 1,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: InkWell(
-                    onTap: onOpen,
-                    child: ProductVisual(product: product),
-                  ),
-                ),
-                Positioned(
-                  top: 15,
-                  left: 15,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 11,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: LumenColors.ink,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'EXCLUSIVO',
-                      style: TextStyle(
-                        color: LumenColors.goldLight,
-                        fontSize: 9,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 10,
-                  right: 8,
-                  child: IconButton(
-                    onPressed: onFavorite,
-                    icon: Icon(
-                      favorite
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      color: favorite
-                          ? const Color(0xFFAF4C55)
-                          : LumenColors.ink,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 14, 17),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.name,
-                        style: TextStyle(
-                          color: LumenColors.ink,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        product.shortDescription,
-                        style: TextStyle(
-                          color: Color(0xFF756C62),
-                          fontSize: 12,
-                        ),
-                      ),
-                      SizedBox(height: 9),
-                      Text(
-                        product.formattedPrice,
-                        style: TextStyle(
-                          color: LumenColors.ink,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                FilledButton(
-                  onPressed: product.availableStock > 0 ? onAdd : null,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: LumenColors.ink,
-                    foregroundColor: LumenColors.goldLight,
-                    padding: const EdgeInsets.all(15),
-                    shape: const CircleBorder(),
-                  ),
-                  child: const Icon(Icons.add_shopping_cart_rounded, size: 20),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
+  Widget build(BuildContext context) => ShopProductCard(
+    product: product,
+    favorite: favorite,
+    onFavorite: onFavorite,
+    onAdd: onAdd,
+    onOpen: onOpen,
   );
 }
 
