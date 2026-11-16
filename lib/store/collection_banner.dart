@@ -55,10 +55,12 @@ class CollectionBanner extends StatelessWidget {
                     Text(
                       'Seus favoritos.\nFrete grátis.',
                       style: TextStyle(
+                        fontFamily: 'Playfair',
                         fontSize: wide ? 42 : 32,
                         height: 1.08,
                         fontWeight: FontWeight.w600,
-                        letterSpacing: -1.2,
+                        fontVariations: const [FontVariation.weight(600)],
+                        letterSpacing: -.6,
                       ),
                     ),
                     const SizedBox(height: 16),

@@ -640,11 +640,11 @@ class _HomeHero extends StatelessWidget {
         Text(
           'Vista a sua\nessência.',
           style: TextStyle(
+            fontFamily: 'Playfair',
             color: LumenColors.paper,
-            fontSize: 38,
-            height: 1.03,
-            fontWeight: FontWeight.w300,
-            letterSpacing: -.8,
+            fontSize: 40,
+            height: 1.05,
+            letterSpacing: -.4,
           ),
         ),
         SizedBox(height: 10),
