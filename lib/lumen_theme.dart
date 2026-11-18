@@ -45,10 +45,17 @@ class Lumen {
 }
 
 ThemeData lumenTheme() {
+  // Paleta neutra (preto, branco e cinzas): sem isso o Flutter inventa tons
+  // azulados para os "containers" (ex.: o círculo do perfil saía ciano).
   final scheme = ColorScheme.fromSeed(
     seedColor: Lumen.ink,
+    dynamicSchemeVariant: DynamicSchemeVariant.monochrome,
     brightness: Brightness.light,
     primary: Lumen.ink,
+    primaryContainer: const Color(0xFFF3EEE7),
+    onPrimaryContainer: Lumen.ink,
+    secondaryContainer: const Color(0xFFF3EADB),
+    onSecondaryContainer: Lumen.ink,
     onPrimary: Colors.white,
     secondary: Lumen.gold,
     surface: Lumen.surface,
